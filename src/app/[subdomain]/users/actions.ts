@@ -4,6 +4,7 @@ import clientPromise from '@/lib/mongodb';
 import { unstable_noStore as noStore } from 'next/cache';
 import { ObjectId } from 'mongodb';
 import type { User as DbUser } from '@/lib/types';
+import { requireTenantAccess } from '@/lib/auth';
 
 export type BotUser = {
   id: string;
