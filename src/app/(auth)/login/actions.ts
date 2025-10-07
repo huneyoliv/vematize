@@ -133,7 +133,8 @@ export async function unifiedLogin(
           userId: tenant._id.toString(),
           email: tenant.ownerEmail,
           name: tenant.ownerName || 'Cliente',
-          subdomain: tenant.subdomain,
+          username: tenant.username,
+          subdomain: tenant.subdomain || tenant.username, // Compatibilidade
           type: 'tenant',
         });
 
@@ -153,7 +154,7 @@ export async function unifiedLogin(
           email: tenant.ownerEmail,
           userType: 'tenant',
           redirectTo: '/dashboard',
-          subdomain: tenant.subdomain,
+          subdomain: tenant.username, // Retorna username (compatibilidade com código existente)
         };
       }
     }

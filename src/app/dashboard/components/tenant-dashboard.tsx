@@ -8,10 +8,11 @@ import {
 import ClientSidebar from "@/components/layout/client-sidebar";
 
 interface TenantDashboardProps {
-  subdomain: string;
+  subdomain: string; // Na verdade pode ser username ou subdomain
 }
 
 export default async function TenantDashboard({ subdomain }: TenantDashboardProps) {
+  // subdomain aqui pode ser username - ambos funcionam por compatibilidade
   const stats = await getDashboardStats(subdomain);
 
   return (

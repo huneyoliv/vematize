@@ -27,8 +27,12 @@ export default async function UnifiedDashboard() {
     return <AdminDashboard />;
   }
 
-  if (session.type === 'tenant' && session.subdomain) {
-    return <TenantDashboard subdomain={session.subdomain} />;
+  if (session.type === 'tenant') {
+    // Usa username se disponível, senão subdomain (compatibilidade)
+    const identifier = session.username || session.subdomain;
+    if (identifier) {
+      return <TenantDashboard subdomain={identifier} />;
+    }
   }
 
   // Fallback (não deveria chegar aqui)
