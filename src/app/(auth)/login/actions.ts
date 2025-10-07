@@ -71,14 +71,14 @@ export async function unifiedLogin(
         path: '/',
       });
 
-      return {
-        success: true,
-        message: 'Setup inicial - Configure sua conta de administrador',
-        name: 'Administrador',
-        email: 'admin',
-        userType: 'admin',
-        redirectTo: '/krov/dashboard',
-      };
+        return {
+          success: true,
+          message: 'Setup inicial - Configure sua conta de administrador',
+          name: 'Administrador',
+          email: 'admin',
+          userType: 'admin',
+          redirectTo: '/dashboard',
+        };
     }
 
     // Tenta login como admin (usando email como username)
@@ -117,7 +117,7 @@ export async function unifiedLogin(
           name: admin.username,
           email: admin.email || admin.username,
           userType: 'admin',
-          redirectTo: '/krov/dashboard',
+          redirectTo: '/dashboard',
         };
       }
     }
@@ -155,7 +155,7 @@ export async function unifiedLogin(
           name: tenant.ownerName || 'Cliente',
           email: tenant.ownerEmail,
           userType: 'tenant',
-          redirectTo: `/${tenant.subdomain}/dashboard`,
+          redirectTo: '/dashboard',
           subdomain: tenant.subdomain,
         };
       }

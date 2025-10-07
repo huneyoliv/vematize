@@ -1,28 +1,36 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
+import { getCurrentSession } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-export default function DeprecatedPage() {
-  return (
-    <Card className="w-full max-w-xl text-center">
-        <CardHeader>
-            <CardTitle>Rota Obsoleta</CardTitle>
-            <CardDescription>
-                Esta página foi movida para uma nova estrutura de URL para múltiplos clientes.
-            </CardDescription>
-        </CardHeader>
-        <CardContent>
-            <p className="text-sm text-muted-foreground mb-4">
-                As páginas do cliente agora são acessadas através do seu subdomínio.
-                <br />
-                Por exemplo: <strong>/seu-subdominio/dashboard</strong>
-            </p>
-            <Button asChild>
-                <Link href="/login">
-                    Ir para o Login
-                </Link>
-            </Button>
-        </CardContent>
-    </Card>
-  );
+// Componentes das dashboards específicas
+import AdminDashboard from './components/admin-dashboard';
+import TenantDashboard from './components/tenant-dashboard';
+
+/**
+ * Dashboard Unificada - Adaptável
+ * 
+ * Detecta automaticamente o tipo de usuário e renderiza
+ * a dashboard apropriada:
+ * - Admin → Dashboard Krov com métricas globais
+ * - Tenant → Dashboard do cliente com suas métricas
+ */
+export default async function UnifiedDashboard() {
+  // Obtém sessão atual
+  const session = await getCurrentSession();
+
+  // Se não autenticado, redireciona para login
+  if (!session) {
+    redirect('/login');
+  }
+
+  // Renderiza dashboard baseado no tipo de usuário
+  if (session.type === 'admin') {
+    return <AdminDashboard />;
+  }
+
+  if (session.type === 'tenant' && session.subdomain) {
+    return <TenantDashboard subdomain={session.subdomain} />;
+  }
+
+  // Fallback (não deveria chegar aqui)
+  redirect('/login');
 }
