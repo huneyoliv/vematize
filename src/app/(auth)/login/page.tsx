@@ -37,7 +37,7 @@ export default function ClientLoginPage() {
   const form = useForm<z.infer<typeof ClientLoginSchema>>({
     resolver: zodResolver(ClientLoginSchema),
     defaultValues: {
-      email: "",
+      username: "",
       password: "",
     },
   })
@@ -87,19 +87,19 @@ export default function ClientLoginPage() {
     <Card className="w-full max-w-md">
       <CardHeader className="text-center space-y-2">
         <CardTitle className="text-2xl font-bold">Vematize</CardTitle>
-        <CardDescription>Use seu e-mail ou usuário para acessar sua conta.</CardDescription>
+        <CardDescription>Use seu username para acessar sua conta.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="username"
                   render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Email ou Usuário</FormLabel>
+                        <FormLabel>Username</FormLabel>
                         <FormControl>
-                            <Input id="email" type="text" placeholder="seu@email.com ou usuário" {...field} />
+                            <Input id="username" type="text" placeholder="seu_username" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -121,11 +121,18 @@ export default function ClientLoginPage() {
                 <Button type="submit" className="w-full" disabled={isSubmitting}>
                     {isSubmitting ? <Loader2 className="animate-spin" /> : "Entrar"}
                 </Button>
-                <div className="mt-4 text-center text-sm">
-                    Não tem uma conta?{" "}
-                    <Link href="/register" className="underline">
-                        Crie agora
-                    </Link>
+                <div className="space-y-2">
+                    <div className="text-center text-sm">
+                        <Link href="/forgot-password" className="underline text-muted-foreground hover:text-foreground">
+                            Esqueceu sua senha?
+                        </Link>
+                    </div>
+                    <div className="text-center text-sm">
+                        Não tem uma conta?{" "}
+                        <Link href="/register" className="underline">
+                            Crie agora
+                        </Link>
+                    </div>
                 </div>
             </form>
         </Form>

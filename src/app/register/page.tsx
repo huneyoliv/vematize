@@ -4,8 +4,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { Loader2 } from "lucide-react"
+import { useState, useEffect } from 'react'
+import { Loader2, CheckCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -33,17 +33,48 @@ export default function RegisterPage() {
   const router = useRouter()
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [usernameStatus, setUsernameStatus] = useState<{
+    checking: boolean;
+    available: boolean | null;
+    message: string;
+  }>({ checking: false, available: null, message: '' })
 
   const form = useForm<z.infer<typeof ClientRegisterSchema>>({
     resolver: zodResolver(ClientRegisterSchema),
     defaultValues: {
       name: "",
-      subdomain: "",
+      username: "",
       cpfCnpj: "",
       email: "",
       password: "",
     },
   })
+
+  // Validação de username em tempo real
+  const username = form.watch('username')
+  useEffect(() => {
+    if (!username || username.length < 3) {
+      setUsernameStatus({ checking: false, available: null, message: '' })
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setUsernameStatus({ checking: true, available: null, message: '' })
+      try {
+        const response = await fetch(`/api/check-username?username=${encodeURIComponent(username)}`)
+        const data = await response.json()
+        setUsernameStatus({
+          checking: false,
+          available: data.available,
+          message: data.message,
+        })
+      } catch (error) {
+        setUsernameStatus({ checking: false, available: false, message: 'Erro ao verificar' })
+      }
+    }, 500) // Debounce de 500ms
+
+    return () => clearTimeout(timer)
+  }, [username])
 
   async function onSubmit(values: z.infer<typeof ClientRegisterSchema>) {
     setIsSubmitting(true);

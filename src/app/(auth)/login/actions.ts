@@ -27,9 +27,9 @@ type UnifiedLoginError = {
 
 export type UnifiedLoginResult = UnifiedLoginSuccess | UnifiedLoginError;
 
-// Schema unificado que aceita email ou username
+// Schema unificado que aceita username
 const UnifiedLoginSchema = z.object({
-  email: z.string().min(1, 'Email ou usuário é obrigatório'),
+  username: z.string().min(1, 'Username é obrigatório'),
   password: z.string().min(1, 'Senha é obrigatória'),
 });
 
@@ -50,7 +50,7 @@ export async function unifiedLogin(
     
     // Verifica setup inicial (admin/admin)
     const adminCount = await adminCollection.countDocuments();
-    if (adminCount === 0 && validatedData.email === 'admin' && validatedData.password === 'admin') {
+    if (adminCount === 0 && validatedData.username === 'admin' && validatedData.password === 'admin') {
       // Setup inicial - criar admin temporário
       const { createSession } = await import('@/lib/auth');
       const tempAdminId = new ObjectId();
@@ -81,12 +81,9 @@ export async function unifiedLogin(
         };
     }
 
-    // Tenta login como admin (usando email como username)
+    // Tenta login como admin
     const admin = await adminCollection.findOne({ 
-      $or: [
-        { username: validatedData.email },
-        { email: validatedData.email }
-      ]
+      username: validatedData.username
     });
 
     if (admin) {
@@ -124,7 +121,7 @@ export async function unifiedLogin(
 
     // 2️⃣ TENTATIVA 2: LOGIN COMO TENANT
     const tenantsCollection = db.collection<TenantDocument>('tenants');
-    const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
+    const tenant = await tenantsCollection.findOne({ username: validatedData.username });
 
     if (tenant && tenant.passwordHash) {
       const isPasswordValid = await bcrypt.compare(validatedData.password, tenant.passwordHash);
@@ -164,7 +161,7 @@ export async function unifiedLogin(
     // ❌ Nenhuma credencial válida encontrada
     return { 
       success: false, 
-      message: 'E-mail/usuário ou senha inválidos.' 
+      message: 'Username ou senha inválidos.' 
     };
 
   } catch (error) {

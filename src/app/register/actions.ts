@@ -21,14 +21,14 @@ export async function registerClient(
     const db = client.db('vematize');
     const tenantsCollection = db.collection('tenants');
 
-    // Check for existing subdomain or email
+    // Check for existing username or email
     const existingTenant = await tenantsCollection.findOne({
-      $or: [{ subdomain: validatedData.subdomain }, { ownerEmail: validatedData.email }],
+      $or: [{ username: validatedData.username }, { ownerEmail: validatedData.email }],
     });
 
     if (existingTenant) {
-      if (existingTenant.subdomain === validatedData.subdomain) {
-        return { success: false, message: 'Este subdomínio já está em uso.' };
+      if (existingTenant.username === validatedData.username) {
+        return { success: false, message: 'Este username já está em uso.' };
       }
       if (existingTenant.ownerEmail === validatedData.email) {
         return { success: false, message: 'Este e-mail já está cadastrado.' };
@@ -40,7 +40,8 @@ export async function registerClient(
 
     await tenantsCollection.insertOne({
       ownerName: validatedData.name,
-      subdomain: validatedData.subdomain,
+      username: validatedData.username,
+      subdomain: validatedData.username, // Por compatibilidade, usa username como subdomain também
       ownerEmail: validatedData.email,
       cpfCnpj: validatedData.cpfCnpj,
       passwordHash: passwordHash,
