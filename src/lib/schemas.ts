@@ -155,3 +155,74 @@ export const BotConfigSchema = z.object({
 export const KrovSettingsSchema = z.object({
   paymentIntegrations: PaymentIntegrationsSchema.optional(),
 });
+
+export const CouponSchema = z.object({
+  id: z.string().optional(),
+  code: z.string()
+    .min(3, { message: "O código deve ter pelo menos 3 caracteres." })
+    .max(50, { message: "O código deve ter no máximo 50 caracteres." })
+    .regex(/^[A-Z0-9_-]+$/, { message: "Use apenas letras maiúsculas, números, hífens e underscores." }),
+  type: z.enum(['percentage', 'fixed_amount', 'free_days'], { 
+    errorMap: () => ({ message: "Tipo de desconto inválido." }) 
+  }),
+  value: z.number()
+    .positive({ message: "O valor deve ser positivo." }),
+  description: z.string().optional(),
+  maxUses: z.number().int().positive().optional(),
+  currentUses: z.number().int().default(0),
+  expiresAt: z.string().optional(), // ISO date string
+  isActive: z.boolean().default(true),
+  applicablePlans: z.array(z.string()).optional(),
+}).refine((data) => {
+  if (data.type === 'percentage' && data.value > 100) {
+    return false;
+  }
+  return true;
+}, {
+  message: "O percentual deve ser entre 1 e 100.",
+  path: ["value"],
+});
+
+// Discord Sales Panel Schemas
+export const DiscordPanelEmbedSchema = z.object({
+  title: z.string().min(1, { message: "O título é obrigatório." }).max(256, { message: "Título muito longo." }),
+  description: z.string().optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, { message: "Cor inválida. Use formato hexadecimal (#000000)." }).default("#5865F2"),
+  imageUrl: z.string().url({ message: "URL de imagem inválida." }).optional(),
+  thumbnailUrl: z.string().url({ message: "URL de thumbnail inválida." }).optional(),
+});
+
+export const DiscordSalesPanelSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1, { message: "O nome do painel é obrigatório." }),
+  channelId: z.string().min(1, { message: "O ID do canal é obrigatório." }),
+  messageId: z.string().optional(), // ID da mensagem criada pelo bot
+  productIds: z.array(z.string()).min(1, { message: "Selecione pelo menos um produto." }),
+  embedConfig: DiscordPanelEmbedSchema,
+  isActive: z.boolean().default(true),
+});
+
+export const DiscordSettingsSchema = z.object({
+  // Configurações de Entrega
+  deliveryType: z.enum(['automatic', 'manual_role', 'manual_notify'], {
+    errorMap: () => ({ message: "Tipo de entrega inválido." })
+  }).default('automatic'),
+  
+  // Para entrega manual com cargo
+  deliveryRoleId: z.string().optional(),
+  
+  // Para notificação manual
+  notifyRoleId: z.string().optional(),
+  
+  // Categoria onde threads de carrinho serão criados
+  cartCategoryId: z.string().optional(),
+  
+  // Canal de logs de vendas
+  salesLogChannelId: z.string().optional(),
+  
+  // Mensagem de entrega automática
+  deliveryMessage: z.string().optional(),
+  
+  // Painéis de vendas
+  panels: z.array(DiscordSalesPanelSchema).default([]),
+});

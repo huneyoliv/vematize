@@ -25,9 +25,8 @@ interface PlanFormDialogProps {
 }
 
 const availableFeatures = [
-  'Acesso ao WhatsApp',
-  'Acesso ao Instagram',
   'Acesso ao Telegram',
+  'Acesso ao Discord',
   'Gestão de usuários completa',
   'Dashboard de estatísticas',
   'Suporte prioritário',

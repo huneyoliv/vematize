@@ -5,6 +5,13 @@ import { headers } from 'next/headers';
 import crypto from 'crypto';
 import { Telegraf } from 'telegraf';
 import { Db, ObjectId as MongoObjectId } from 'mongodb';
+import { checkRateLimit } from '@/lib/webhook-rate-limiter';
+import { 
+  logWebhookSecurityAlert, 
+  checkAndMarkUntrustedWebhook,
+  validatePayloadSize,
+  extractRequestInfo 
+} from '@/lib/webhook-security';
 
 /**
  * Escapes characters for Telegram's MarkdownV2 parse mode.
@@ -89,6 +96,45 @@ export async function POST(
     return NextResponse.json({ success: false, message: 'Subdomain or gateway is missing.' }, { status: 400 });
   }
 
+  // ==========================================
+  // PROTEÇÃO 1: VALIDAÇÃO DE TAMANHO (1MB)
+  // ==========================================
+  const contentLength = request.headers.get('content-length');
+  if (!validatePayloadSize(contentLength, 1048576)) {
+    console.error(`[Webhook Security] Payload too large for ${subdomain}/${gateway}. Size: ${contentLength}`);
+    return NextResponse.json({ success: false, message: 'Payload too large. Maximum 1MB.' }, { status: 413 });
+  }
+
+  // ==========================================
+  // PROTEÇÃO 2: RATE LIMITING ESTRITO
+  // ==========================================
+  const rateLimitKey = `webhook:${subdomain}:${gateway}`;
+  const rateLimit = checkRateLimit(rateLimitKey, {
+    requestsPerSecond: 1,
+    burstLimit: 3,
+    windowMs: 1000,
+  });
+
+  if (!rateLimit.allowed) {
+    const requestInfo = extractRequestInfo(request);
+    console.warn(`[Webhook Security] Rate limit exceeded for ${subdomain}/${gateway}`, {
+      ip: requestInfo.ip,
+      retryAfter: rateLimit.retryAfter,
+    });
+    
+    return NextResponse.json(
+      { success: false, message: 'Rate limit exceeded. Please try again later.' },
+      { 
+        status: 429,
+        headers: {
+          'Retry-After': rateLimit.retryAfter?.toString() || '60',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': rateLimit.resetAt.toString(),
+        }
+      }
+    );
+  }
+
   // --- DEBUG: Log all incoming headers ---
   const headersList = headers();
   const headersObject: { [key: string]: string } = {};
@@ -126,7 +172,18 @@ export async function POST(
             }
 
             const mpSettings = tenant.paymentIntegrations?.mercadopago;
-            const secret = isSandbox ? mpSettings?.sandbox_webhook_secret : mpSettings?.production_webhook_secret;
+            const secret = isSandbox 
+                ? mpSettings?.sandbox_webhook_secret 
+                : mpSettings?.production_webhook_secret;
+
+            // ==========================================
+            // PROTEÇÃO 3: VERIFICAÇÃO DE SECRET E MARCAÇÃO DE UNTRUSTED
+            // ==========================================
+            const hasSecret = !!secret;
+            let webhookVerified = false;
+
+            // Marcar tenant como untrusted se não tiver secret
+            const isUntrusted = await checkAndMarkUntrustedWebhook(tenant, hasSecret);
 
             // In production, we must validate the signature if a secret is available.
             if (!isSandbox) {
@@ -148,10 +205,25 @@ export async function POST(
                     }
 
                     console.log(`[MP Webhook] Signature for ${subdomain} validated successfully.`);
+                    webhookVerified = true;
 
                 } else {
-                    // If no secret is configured, log a warning but continue processing as per user request.
-                    console.warn(`[MP Webhook] No webhook secret found for ${gateway} on subdomain: ${subdomain}. Skipping signature validation. This is a security risk.`);
+                    // WEBHOOK NÃO CONFIÁVEL - Log detalhado + alerta
+                    const requestInfo = extractRequestInfo(request);
+                    console.warn(`[MP Webhook] 🚨 UNTRUSTED WEBHOOK: No webhook secret for ${gateway} on ${subdomain}`, {
+                        ip: requestInfo.ip,
+                        userAgent: requestInfo.userAgent,
+                        timestamp: requestInfo.timestamp,
+                    });
+                }
+            } else {
+                // Sandbox também requer validação agora
+                if (!secret) {
+                    const requestInfo = extractRequestInfo(request);
+                    console.warn(`[MP Webhook] 🚨 SANDBOX UNTRUSTED: No webhook secret for sandbox on ${subdomain}`, {
+                        ip: requestInfo.ip,
+                        timestamp: requestInfo.timestamp,
+                    });
                 }
             }
 
@@ -163,6 +235,10 @@ export async function POST(
                 break;
             }
 
+            // ==========================================
+            // PROTEÇÃO 4: VERIFICAÇÃO DUPLA COM PROVEDOR (API)
+            // ==========================================
+            // Sempre buscar status direto do Mercado Pago
             const client = new MercadoPagoConfig({ accessToken });
             const payment = new Payment(client);
             const mpPayment = await payment.get({ id: paymentId });
@@ -189,13 +265,37 @@ export async function POST(
             }
 
             if (newStatus === 'approved') {
+                // ==========================================
+                // PROTEÇÃO 5: LOG DE ALERTA PARA WEBHOOKS NÃO VERIFICADOS
+                // ==========================================
+                if (isUntrusted) {
+                    await logWebhookSecurityAlert({
+                        tenantId: tenant._id.toString(),
+                        subdomain: tenant.subdomain,
+                        alertType: 'untrusted_webhook_payment',
+                        severity: 'critical',
+                        details: {
+                            saleId,
+                            paymentId,
+                            amount: mpPayment.transaction_amount,
+                            gateway: gateway,
+                            webhookVerified: webhookVerified,
+                            hasSecret: hasSecret,
+                            productId: sale.productId,
+                        },
+                        timestamp: new Date(),
+                    });
+                }
+
                 await salesCollection.updateOne(
                     { _id: new MongoObjectId(saleId) }, 
                     { 
                         $set: { 
                             status: 'approved', 
                             updatedAt: new Date(),
-                            total_value: mpPayment.transaction_amount 
+                            total_value: mpPayment.transaction_amount,
+                            webhookVerified: webhookVerified,
+                            providerVerified: true, // Sempre true pois verificamos via API
                         } 
                     }
                 );
@@ -208,14 +308,37 @@ export async function POST(
                     break;
                 }
 
-                if (!tenant.connections?.telegram?.botToken) {
-                    console.error(`[Delivery] Bot token not found for tenant ${tenant.subdomain}.`);
+                // Verifica se é Telegram ou Discord
+                const isTelegram = !!sale.telegramChatId && !!tenant.connections?.telegram?.botToken;
+                const isDiscord = !!sale.discordThreadId && !!tenant.connections?.discord?.botToken;
+
+                if (!isTelegram && !isDiscord) {
+                    console.error(`[Delivery] No bot connection found for tenant ${tenant.subdomain}.`);
                     break;
                 }
 
-                const bot = new Telegraf(tenant.connections.telegram.botToken);
+                // Para Discord, usa função especializada
+                if (isDiscord) {
+                    try {
+                        const botFactoryModule = await import('@/lib/discord/botFactory');
+                        await botFactoryModule.handleDiscordPaymentConfirmation(saleId);
+                    } catch (discordImportError) {
+                        console.error('[Discord] Error importing botFactory:', discordImportError);
+                    }
+                    break; // Discord é tratado pela função especializada
+                }
+
+                // Inicializa o bot do Telegram
+                let telegramBot: Telegraf | null = null;
+                
+                if (isTelegram) {
+                    telegramBot = new Telegraf(tenant.connections!.telegram!.botToken);
+                }
+
                 const chatId = sale.telegramChatId;
                 const messageId = sale.telegramMessageId;
+                const discordChannelId = sale.discordChannelId;
+                const discordMessageId = sale.discordMessageId;
 
                 const deliveryMessage = tenant.botConfig?.deliveryMessage || '🎉 Pagamento aprovado! Aqui está o seu produto:';
                 
@@ -247,13 +370,17 @@ export async function POST(
                 } else if (product.type === 'subscription') {
                     if (product.isTelegramGroupAccess && product.telegramGroupId) {
                         try {
-                            const expireDate = Math.floor(Date.now() / 1000) + 3600; // 1 hora a partir de agora
-                            const inviteLink = await bot.telegram.createChatInviteLink(product.telegramGroupId, {
-                                member_limit: 1,
-                                expire_date: expireDate
-                            });
-                            inviteLinkUrl = inviteLink.invite_link;
-                            productContent = `Sua assinatura foi ativada! Use o botão abaixo para acessar o grupo.`;
+                            if (telegramBot) {
+                                const expireDate = Math.floor(Date.now() / 1000) + 3600; // 1 hora a partir de agora
+                                const inviteLink = await telegramBot.telegram.createChatInviteLink(product.telegramGroupId, {
+                                    member_limit: 1,
+                                    expire_date: expireDate
+                                });
+                                inviteLinkUrl = inviteLink.invite_link;
+                                productContent = `Sua assinatura foi ativada! Use o botão abaixo para acessar o grupo.`;
+                            } else {
+                                productContent = `Sua assinatura foi ativada com sucesso!`;
+                            }
                         } catch (e) {
                             console.error(`[Delivery] Erro ao criar link do grupo:`, e);
                             productContent = `❌ Não foi possível gerar seu link de convite. Por favor, contate o suporte.`;
@@ -263,54 +390,62 @@ export async function POST(
                     }
                 }
                 
-                const finalMessage = `${escapeMarkdown(deliveryMessage)}\n\n*${escapeMarkdown(product.name)}*\n${productContent}`;
+                // Envio para Telegram
+                if (isTelegram && telegramBot && chatId) {
+                    const finalMessage = `${escapeMarkdown(deliveryMessage)}\n\n*${escapeMarkdown(product.name)}*\n${productContent}`;
 
-                const inlineKeyboard = inviteLinkUrl
-                    ? { inline_keyboard: [[{ text: 'Acessar Grupo', url: inviteLinkUrl }]] }
-                    : undefined;
+                    const inlineKeyboard = inviteLinkUrl
+                        ? { inline_keyboard: [[{ text: 'Acessar Grupo', url: inviteLinkUrl }]] }
+                        : undefined;
 
-                let messageEdited = false;
-                if (chatId && messageId) {
-                    try {
-                        await bot.telegram.editMessageText(
-                            chatId,
-                            messageId,
-                            undefined, // inline_message_id
-                            finalMessage,
-                            {
-                                parse_mode: 'MarkdownV2',
-                                reply_markup: inlineKeyboard
-                            }
-                        );
-                        messageEdited = true;
-                    } catch (error: any) {
-                        // This error is expected if the original message has no text (e.g., an invoice).
-                        // We will proceed to delete it and send a new one.
-                        console.log(`[Delivery] Could not edit message ${messageId} (this is often expected). Proceeding to replace it.`, error.description || error.message);
-                    }
-                }
-
-                if (!messageEdited) {
-                    // If the message was not edited (either because it failed or because there was no previous message),
-                    // delete the old one (if it exists) and send a new one.
-                    if (chatId && messageId) {
+                    let messageEdited = false;
+                    if (messageId) {
                         try {
-                            await bot.telegram.deleteMessage(chatId, messageId);
-                            console.log(`[Delivery] Deleted old message ${messageId} for chat ${chatId}`);
-                        } catch (deleteError) {
-                            console.error(`[Delivery] Failed to DELETE old message ${messageId}.`, deleteError);
+                            await telegramBot.telegram.editMessageText(
+                                chatId,
+                                messageId,
+                                undefined,
+                                finalMessage,
+                                {
+                                    parse_mode: 'MarkdownV2',
+                                    reply_markup: inlineKeyboard
+                                }
+                            );
+                            messageEdited = true;
+                        } catch (error: any) {
+                            console.log(`[Delivery] Could not edit Telegram message ${messageId}. Proceeding to replace it.`, error.description || error.message);
                         }
                     }
-                    await bot.telegram.sendMessage(chatId, finalMessage, {
-                        parse_mode: 'MarkdownV2',
-                        reply_markup: inlineKeyboard
-                    });
+
+                    if (!messageEdited) {
+                        if (messageId) {
+                            try {
+                                await telegramBot.telegram.deleteMessage(chatId, messageId);
+                                console.log(`[Delivery] Deleted old Telegram message ${messageId} for chat ${chatId}`);
+                            } catch (deleteError) {
+                                console.error(`[Delivery] Failed to delete old Telegram message ${messageId}.`, deleteError);
+                            }
+                        }
+                        await telegramBot.telegram.sendMessage(chatId, finalMessage, {
+                            parse_mode: 'MarkdownV2',
+                            reply_markup: inlineKeyboard
+                        });
+                    }
                 }
+
+                // Nota: Envio para Discord é tratado pela função handleDiscordPaymentConfirmation() acima
 
                 // Se for uma assinatura, registra a compra no perfil do usuário
                 if (product.type === 'subscription') {
                     const usersCollection = db.collection('users');
-                    const user = await usersCollection.findOne({ telegramId: chatId });
+                    let user = null;
+                    
+                    if (isTelegram && chatId) {
+                        user = await usersCollection.findOne({ telegramId: chatId });
+                    } else if (isDiscord) {
+                        // Busca o usuário pelo userId da venda (que é o _id do documento user)
+                        user = await usersCollection.findOne({ _id: new MongoObjectId(sale.userId) });
+                    }
 
                     if (user) {
                         const expiresAt = new Date();
@@ -320,9 +455,10 @@ export async function POST(
                             _id: new MongoObjectId(),
                             productId: product._id,
                             saleId: sale._id,
+                            productName: product.name,
                             type: 'subscription',
                             status: 'approved',
-                            purchasedAt: new Date(),
+                            purchaseDate: new Date(),
                             expiresAt: expiresAt
                         };
                         
@@ -330,9 +466,9 @@ export async function POST(
                             { _id: user._id },
                             { $push: { purchases: purchaseRecord as any } }
                         );
-                        console.log(`[Delivery] Registro de compra adicionado para o usuário ${chatId}`);
+                        console.log(`[Delivery] Registro de compra adicionado para o usuário ${user._id}`);
                     } else {
-                        console.error(`[Delivery] User with telegramId ${chatId} not found. Cannot add purchase record.`);
+                        console.error(`[Delivery] User not found. Cannot add purchase record.`);
                     }
                 }
                 

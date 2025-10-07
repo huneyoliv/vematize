@@ -8,8 +8,17 @@ import {
     DollarSign,
     CreditCard,
 } from 'lucide-react';
+import { requireTenantAccess } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function DashboardPage({ params }: { params: { subdomain: string } }) {
+    // Protege a rota - requer autenticação e acesso ao subdomain
+    try {
+        await requireTenantAccess(params.subdomain);
+    } catch (error) {
+        redirect('/login');
+    }
+
     const stats = await getDashboardStats(params.subdomain);
 
     return (

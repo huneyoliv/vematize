@@ -1,7 +1,16 @@
 import { getProducts } from "./actions";
 import { ProductsManager } from "./components/products-manager";
+import { requireTenantAccess } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function ProductsPage({ params }: { params: { subdomain: string } }) {
+    // Protege a rota - requer autenticação e acesso ao subdomain
+    try {
+        await requireTenantAccess(params.subdomain);
+    } catch (error) {
+        redirect('/login');
+    }
+
     const products = await getProducts(params.subdomain);
 
     return (

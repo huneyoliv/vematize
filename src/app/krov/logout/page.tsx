@@ -2,16 +2,24 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { logoutAdminAction } from './actions';
 
 export default function LogoutPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // Clear any client-side session info, like the password change flag
-    sessionStorage.removeItem('forcePasswordChange');
-    
-    // Redirect to the appropriate login page
-    router.push('/krov/login'); 
+    async function handleLogout() {
+      // Remove a sessão do servidor
+      await logoutAdminAction();
+      
+      // Limpa sessionStorage
+      sessionStorage.removeItem('forcePasswordChange');
+      
+      // Redireciona para login
+      router.push('/krov/login'); 
+    }
+
+    handleLogout();
   }, [router]);
 
   return (

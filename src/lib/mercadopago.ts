@@ -37,7 +37,14 @@ export async function createMercadoPagoPreference(
             return { success: false, message: 'O valor do produto deve ser maior que zero para pagamento.' };
         }
 
-        const notification_url = `${process.env.NEXT_PUBLIC_BASE_URL}/${tenant.subdomain}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
+        // Usa a URL base configurada no .env, necessária para webhooks do Mercado Pago
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        if (!baseUrl) {
+            console.error('NEXT_PUBLIC_BASE_URL não está configurada. Configure no .env para usar webhooks do Mercado Pago.');
+            return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
+        }
+
+        const notification_url = `${baseUrl}/${tenant.subdomain}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
 
         const body = {
             items: [
@@ -114,7 +121,14 @@ export async function createMercadoPagoPixPayment(
             return { success: false, message: 'O valor do produto deve ser maior que zero.' };
         }
 
-        const notification_url = `${process.env.NEXT_PUBLIC_BASE_URL}/${tenant.subdomain}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
+        // Usa a URL base configurada no .env, necessária para webhooks do Mercado Pago
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        if (!baseUrl) {
+            console.error('NEXT_PUBLIC_BASE_URL não está configurada. Configure no .env para usar webhooks do Mercado Pago.');
+            return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
+        }
+
+        const notification_url = `${baseUrl}/${tenant.subdomain}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
 
         const expirationDate = new Date();
         expirationDate.setMinutes(expirationDate.getMinutes() + 30);

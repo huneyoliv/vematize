@@ -4,11 +4,15 @@ import { z } from 'zod';
 import clientPromise from '@/lib/mongodb';
 import { MercadoPagoSettingsSchema } from '@/lib/schemas';
 import { revalidatePath } from 'next/cache';
+import { requireTenantAccess } from '@/lib/auth';
 
 type MercadoPagoSettings = z.infer<typeof MercadoPagoSettingsSchema>;
 
 export async function getMercadoPagoSettings(subdomain: string): Promise<MercadoPagoSettings | null> {
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         const client = await clientPromise;
         const db = client.db('vematize');
         const tenantsCollection = db.collection('tenants');
@@ -40,6 +44,9 @@ export async function updateMercadoPagoSettings(
     data: MercadoPagoSettings
 ): Promise<{ success: boolean; message: string }> {
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         const validatedData = MercadoPagoSettingsSchema.parse(data);
 
         const client = await clientPromise;

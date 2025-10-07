@@ -45,6 +45,9 @@ export async function getProducts(subdomain: string): Promise<Product[]> {
 
 export async function getProductById(subdomain: string, productId: string): Promise<Product | null> {
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         if (!ObjectId.isValid(productId)) {
             return null;
         }
@@ -84,6 +87,9 @@ export async function saveProduct(
     productData: z.infer<typeof ProductSchema>
 ): Promise<{ success: boolean; message: string; }> {
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         const validation = ProductSchema.safeParse(productData);
         if (!validation.success) {
             return { success: false, message: validation.error.errors.map(e => e.message).join(', ') };
@@ -162,6 +168,9 @@ export async function saveProduct(
 
 export async function deleteProduct(subdomain: string, productId: string) {
      try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         if (!ObjectId.isValid(productId)) {
             return { success: false, message: "ID do produto inválido." };
         }

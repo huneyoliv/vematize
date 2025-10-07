@@ -6,6 +6,7 @@ import { ObjectId } from 'mongodb';
 import { MercadoPagoConfig, Preference, Payment } from 'mercadopago';
 import { headers } from 'next/headers';
 import { Telegraf } from 'telegraf';
+import { requireTenantAccess } from '@/lib/auth';
 
 export type CurrentPlanInfo = {
   status: string;
@@ -197,6 +198,9 @@ export async function getAvailablePlans(): Promise<SaasPlan[]> {
 
 export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlanInfo> {
   try {
+    // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+    await requireTenantAccess(subdomain);
+
     const client = await clientPromise;
     const db = client.db('vematize');
     const tenantsCollection = db.collection<TenantDocument>('tenants');
@@ -210,9 +214,8 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
         planName: 'Plano de Teste Gratuito',
         price: 0,
         features: [
-          'Acesso ao WhatsApp',
-          'Acesso ao Instagram',
           'Acesso ao Telegram',
+          'Acesso ao Discord',
           'Gestão de usuários completa',
           'Dashboard de estatísticas',
           'Suporte prioritário',
@@ -269,9 +272,8 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
       planName: plan?.name || 'Plano de Teste Gratuito',
       price: plan?.price || 0,
       features: plan?.features || [
-        'Acesso ao WhatsApp',
-        'Acesso ao Instagram',
         'Acesso ao Telegram',
+        'Acesso ao Discord',
         'Gestão de usuários completa',
         'Dashboard de estatísticas',
         'Suporte prioritário',
@@ -299,11 +301,15 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
 export async function createSubscriptionPayment(
     planId: string, 
     subdomain: string, 
-    paymentMethod: 'pix' | 'card'
+    paymentMethod: 'pix' | 'card',
+    couponCode?: string
 ): Promise<{ init_point?: string; qrCode?: string; qrCodeBase64?: string; subscriptionId?: string; error?: string }> {
     'use server';
 
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         const client = await clientPromise;
         const db = client.db('vematize');
 
@@ -335,6 +341,55 @@ export async function createSubscriptionPayment(
 
         let price = newPlan.price;
         let title = `Plano ${newPlan.name} - Vematize`;
+        let freeDays = 0;
+
+        // Processar cupom se fornecido
+        if (couponCode) {
+            const couponsCollection = db.collection<any>('coupons');
+            const coupon = await couponsCollection.findOne({ 
+                code: couponCode.toUpperCase(),
+                isActive: true
+            });
+
+            if (coupon) {
+                // Verifica validade do cupom
+                if (coupon.expiresAt && new Date(coupon.expiresAt) < new Date()) {
+                    throw new Error('Este cupom expirou.');
+                }
+
+                if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
+                    throw new Error('Este cupom atingiu o limite de usos.');
+                }
+
+                if (coupon.applicablePlans && coupon.applicablePlans.length > 0) {
+                    if (!coupon.applicablePlans.includes(planId)) {
+                        throw new Error('Este cupom não é válido para este plano.');
+                    }
+                }
+
+                // Aplicar desconto
+                if (coupon.type === 'percentage') {
+                    price = Math.round((price * (1 - (coupon.value / 100))) * 100) / 100;
+                } else if (coupon.type === 'fixed_amount') {
+                    price = Math.max(0, Math.round((price - coupon.value) * 100) / 100);
+                } else if (coupon.type === 'free_days') {
+                    freeDays = coupon.value;
+                }
+
+                // Incrementar contador de uso do cupom
+                await couponsCollection.updateOne(
+                    { _id: coupon._id },
+                    { 
+                        $inc: { currentUses: 1 },
+                        $set: { updatedAt: new Date() }
+                    }
+                );
+
+                console.log(`[Coupon Applied] Code: ${couponCode}, Type: ${coupon.type}, Value: ${coupon.value}`);
+            } else {
+                throw new Error('Cupom inválido ou inativo.');
+            }
+        }
 
         // Handle upgrade logic
         if (tenant.planId && tenant.subscriptionStatus === 'active' && tenant.subscriptionEndsAt) {
@@ -380,21 +435,28 @@ export async function createSubscriptionPayment(
 
         const mpClient = new MercadoPagoConfig({ accessToken, options: { timeout: 5000 } });
         
-        const h = headers();
-        const host = h.get('host');
-        if (!host) {
-            throw new Error("Não foi possível determinar o host da aplicação.");
+        // Usa a URL base configurada no .env se disponível, senão tenta detectar do request
+        let baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        
+        if (!baseUrl) {
+            const h = headers();
+            const host = h.get('host');
+            if (!host) {
+                throw new Error("Não foi possível determinar o host da aplicação. Configure NEXT_PUBLIC_BASE_URL no .env.");
+            }
+            // Robust protocol detection for ngrok/proxies
+            const protocol = h.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
+            baseUrl = `${protocol}://${host}`;
         }
-        // Robust protocol detection for ngrok/proxies
-        const protocol = h.get('x-forwarded-proto') || (process.env.NODE_ENV === 'production' ? 'https' : 'http');
-        const notification_url = `${protocol}://${host}/krov/api/webhook/${gatewayName}`;
+        
+        const notification_url = `${baseUrl}/krov/api/webhook/${gatewayName}`;
 
         if (paymentMethod === 'card') {
             const preferenceClient = new Preference(mpClient);
             const back_urls = {
-                success: mpSettings.success_url || `${protocol}://${host}/${subdomain}/plan/return?status=success`,
-                failure: mpSettings.failure_url || `${protocol}://${host}/${subdomain}/plan/return?status=failure`,
-                pending: mpSettings.pending_url || `${protocol}://${host}/${subdomain}/plan/return?status=pending`,
+                success: mpSettings.success_url || `${baseUrl}/${subdomain}/plan/return?status=success`,
+                failure: mpSettings.failure_url || `${baseUrl}/${subdomain}/plan/return?status=failure`,
+                pending: mpSettings.pending_url || `${baseUrl}/${subdomain}/plan/return?status=pending`,
             };
 
             const expirationDate = new Date();

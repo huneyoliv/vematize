@@ -1,4 +1,4 @@
-import { WhatsAppIcon, InstagramIcon, TelegramIcon } from "@/components/icons/platform-icons";
+import { TelegramIcon, DiscordIcon } from "@/components/icons/platform-icons";
 import type { ComponentType, SVGProps } from "react";
 
 type Field = {
@@ -17,23 +17,6 @@ interface PlatformConfig {
 }
 
 export const platformConfigMap: Record<string, PlatformConfig> = {
-    whatsapp: {
-        title: "Configuração do WhatsApp",
-        description: "Conecte sua conta do WhatsApp para automatizar suas conversas.",
-        icon: WhatsAppIcon,
-        fields: [],
-        connectionCheckKey: "connected"
-    },
-    instagram: {
-        title: "Configuração do Instagram",
-        description: "Responda directs, comentários e menções automaticamente.",
-        icon: InstagramIcon,
-        fields: [
-            { id: "pageId", label: "ID da Página do Facebook", placeholder: "ID da sua página..." },
-            { id: "accessToken", label: "Token de Acesso", placeholder: "Seu token de acesso...", type: "password" }
-        ],
-        connectionCheckKey: "accessToken"
-    },
     telegram: {
         title: "Configuração do Telegram",
         description: "Crie um bot personalizado para interagir com seus usuários.",
@@ -42,9 +25,18 @@ export const platformConfigMap: Record<string, PlatformConfig> = {
             { id: "botToken", label: "Token do Bot do Telegram", placeholder: "Seu token do BotFather...", type: "password" }
         ],
         connectionCheckKey: "botToken"
+    },
+    discord: {
+        title: "Configuração do Discord",
+        description: "Crie um bot do Discord para gerenciar sua comunidade.",
+        icon: DiscordIcon,
+        fields: [
+            { id: "botToken", label: "Token do Bot do Discord", placeholder: "Seu token do bot...", type: "password" }
+        ],
+        connectionCheckKey: "botToken"
     }
 };
 
-export const supportedPlatforms: Platform[] = ['whatsapp', 'telegram', 'instagram'];
+export const supportedPlatforms: Platform[] = ['telegram', 'discord'];
 
 export type Platform = keyof typeof platformConfigMap;
