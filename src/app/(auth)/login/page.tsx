@@ -27,7 +27,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ClientLoginSchema } from "@/lib/schemas"
-import { loginClient } from "./actions"
+import { unifiedLogin } from "./actions"
 
 export default function ClientLoginPage() {
   const router = useRouter()
@@ -45,11 +45,26 @@ export default function ClientLoginPage() {
   async function onSubmit(values: z.infer<typeof ClientLoginSchema>) {
     setIsSubmitting(true);
     try {
-      const result = await loginClient(values);
+      const result = await unifiedLogin(values);
       if (result.success) {
-        // Store user info in session storage to be used by other components
-        sessionStorage.setItem('userInfo', JSON.stringify({ name: result.name, email: result.email, subdomain: result.subdomain }));
-        router.push(`/${result.subdomain}/dashboard`);
+        toast({
+          title: result.message,
+          description: result.userType === 'admin' 
+            ? 'Redirecionando para o painel de administração...'
+            : 'Redirecionando para seu painel...',
+        });
+
+        // Store user info in session storage
+        const userInfo = {
+          name: result.name,
+          email: result.email,
+          userType: result.userType,
+          ...(result.subdomain && { subdomain: result.subdomain })
+        };
+        sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
+        
+        // Redireciona para o painel correto
+        router.push(result.redirectTo);
       } else {
         toast({
           variant: 'destructive',
@@ -71,8 +86,8 @@ export default function ClientLoginPage() {
   return (
     <Card className="w-full max-w-md">
       <CardHeader className="text-center space-y-2">
-        <CardTitle className="text-2xl font-bold">Painel do Cliente</CardTitle>
-        <CardDescription>Use seu e-mail e senha para acessar sua conta.</CardDescription>
+        <CardTitle className="text-2xl font-bold">Vematize</CardTitle>
+        <CardDescription>Use seu e-mail ou usuário para acessar sua conta.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -82,9 +97,9 @@ export default function ClientLoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Email</FormLabel>
+                        <FormLabel>Email ou Usuário</FormLabel>
                         <FormControl>
-                            <Input id="email" type="email" placeholder="seu@email.com" {...field} />
+                            <Input id="email" type="text" placeholder="seu@email.com ou usuário" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
