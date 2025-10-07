@@ -49,6 +49,26 @@ export async function loginClient(
     if (!isPasswordValid) {
       return { success: false, message: 'E-mail ou senha inválidos.' };
     }
+
+    // Cria sessão segura server-side
+    const { createSession } = await import('@/lib/auth');
+    const token = await createSession({
+      userId: tenant._id.toString(),
+      email: tenant.ownerEmail,
+      name: tenant.ownerName || 'Cliente',
+      subdomain: tenant.subdomain,
+      type: 'tenant',
+    });
+
+    // Define cookie httpOnly seguro
+    const { cookies } = await import('next/headers');
+    cookies().set('session_token', token, {
+      httpOnly: true, // Não acessível via JavaScript
+      secure: process.env.NODE_ENV === 'production', // Apenas HTTPS em produção
+      sameSite: 'strict', // Proteção contra CSRF
+      maxAge: 60 * 60 * 24 * 7, // 7 dias
+      path: '/',
+    });
     
     return { 
         success: true,

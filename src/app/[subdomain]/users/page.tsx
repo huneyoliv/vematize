@@ -7,8 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import { getBotUsers } from './actions';
+import { requireTenantAccess } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function BotUsersPage({ params }: { params: { subdomain: string } }) {
+    // Protege a rota - requer autenticação e acesso ao subdomain
+    try {
+        await requireTenantAccess(params.subdomain);
+    } catch (error) {
+        redirect('/login');
+    }
+
     const users = await getBotUsers(params.subdomain);
 
     return (

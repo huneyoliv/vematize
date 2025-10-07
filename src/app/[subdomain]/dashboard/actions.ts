@@ -3,6 +3,7 @@
 import clientPromise from '@/lib/mongodb';
 import { unstable_noStore as noStore } from 'next/cache';
 import { Tenant } from '@/lib/types';
+import { requireTenantAccess } from '@/lib/auth';
 
 type BotStats = {
   totalUsers: number;
@@ -13,6 +14,9 @@ type BotStats = {
 
 export async function getBotStats(subdomain: string): Promise<BotStats> {
   try {
+    // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+    await requireTenantAccess(subdomain);
+
     const client = await clientPromise;
     const db = client.db('vematize');
     
@@ -55,6 +59,9 @@ export async function getBotStats(subdomain: string): Promise<BotStats> {
 export async function getDashboardStats(subdomain: string) {
     noStore();
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         const client = await clientPromise;
         const db = client.db('vematize');
         

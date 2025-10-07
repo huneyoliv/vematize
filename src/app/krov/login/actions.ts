@@ -24,6 +24,7 @@ export async function login(values: z.infer<typeof LoginSchema>): Promise<LoginR
     // Check if it's the initial setup
     const adminCount = await adminCollection.countDocuments();
     if (adminCount === 0 && values.username === 'admin' && values.password === 'admin') {
+      // Para o setup inicial, não cria sessão ainda - usuário precisa configurar senha
       return { success: true, message: 'Login temporário bem-sucedido! Configure seu usuário.', temporary: true };
     }
 
@@ -38,6 +39,25 @@ export async function login(values: z.infer<typeof LoginSchema>): Promise<LoginR
     if (!isPasswordValid) {
       return { success: false, message: 'Usuário ou senha inválidos.' };
     }
+
+    // Cria sessão segura server-side
+    const { createSession } = await import('@/lib/auth');
+    const token = await createSession({
+      userId: admin._id.toString(),
+      email: admin.email || admin.username,
+      name: admin.username,
+      type: 'admin',
+    });
+
+    // Define cookie httpOnly seguro
+    const { cookies } = await import('next/headers');
+    cookies().set('session_token', token, {
+      httpOnly: true, // Não acessível via JavaScript
+      secure: process.env.NODE_ENV === 'production', // Apenas HTTPS em produção
+      sameSite: 'strict', // Proteção contra CSRF
+      maxAge: 60 * 60 * 24 * 7, // 7 dias
+      path: '/',
+    });
 
     return { success: true, message: 'Login bem-sucedido!' };
 

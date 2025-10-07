@@ -17,6 +17,8 @@ import {
 import { UserNav } from '@/components/layout/user-nav';
 import { getKrovDashboardData } from './actions';
 import { SalesReportChart } from '../reports/components/sales-report-chart';
+import { requireAdminAuth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 function formatCurrency(value: number) {
   return new Intl.NumberFormat('pt-BR', {
@@ -26,6 +28,13 @@ function formatCurrency(value: number) {
 }
 
 export default async function AdminDashboardPage() {
+  // Protege a rota - requer autenticação de admin
+  try {
+    await requireAdminAuth();
+  } catch (error) {
+    redirect('/krov/login');
+  }
+
   const data = await getKrovDashboardData();
 
   return (

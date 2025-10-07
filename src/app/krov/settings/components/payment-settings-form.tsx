@@ -20,12 +20,17 @@ export function PaymentSettingsForm({ settings }: PaymentSettingsFormProps) {
   let statusText: 'Produção' | 'Sandbox' | 'Inativo' = 'Inativo';
   let badgeVariant: 'default' | 'secondary' | 'outline' = 'secondary';
 
-  if (mpSettings?.production_access_token && mpSettings?.production_public_key) {
-    statusText = 'Produção';
-    badgeVariant = 'default';
-  } else if (mpSettings?.sandbox_access_token && mpSettings?.sandbox_public_key) {
-    statusText = 'Sandbox';
-    badgeVariant = 'outline';
+  // Verifica o modo ativo e se as credenciais necessárias existem
+  if (mpSettings?.mode === 'production') {
+    if (mpSettings.production_access_token && mpSettings.production_public_key) {
+      statusText = 'Produção';
+      badgeVariant = 'default';
+    }
+  } else if (mpSettings?.mode === 'sandbox') {
+    if (mpSettings.sandbox_access_token && mpSettings.sandbox_public_key) {
+      statusText = 'Sandbox';
+      badgeVariant = 'outline';
+    }
   }
 
   return (

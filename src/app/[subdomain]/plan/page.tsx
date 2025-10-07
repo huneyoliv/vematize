@@ -150,14 +150,14 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
         setIsPaymentDialogOpen(true);
     };
 
-    const handlePaymentMethodSelection = async (paymentMethod: 'pix' | 'card') => {
+    const handlePaymentMethodSelection = async (paymentMethod: 'pix' | 'card', couponCode?: string) => {
         if (!selectedPlan) return;
         
         setIsProcessingPayment(true);
         setIsPaymentDialogOpen(false);
 
         try {
-            const result = await createSubscriptionPayment(selectedPlan.id, params.subdomain, paymentMethod);
+            const result = await createSubscriptionPayment(selectedPlan.id, params.subdomain, paymentMethod, couponCode);
 
             if (result.error) {
                 toast({ variant: 'destructive', title: 'Erro ao criar pagamento', description: result.error });
@@ -329,6 +329,7 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
                     }}
                     onConfirm={handlePaymentMethodSelection}
                     planName={selectedPlan.name}
+                    planId={selectedPlan.id}
                     price={selectedPlan.price}
                     isLoading={isProcessingPayment}
                 />

@@ -48,7 +48,9 @@ export async function POST(
             }
 
             const mpSettings = settings.paymentIntegrations?.mercadopago;
-            const secret = isSandbox ? mpSettings?.sandbox_webhook_secret : mpSettings?.production_webhook_secret;
+            const secret = isSandbox 
+                ? mpSettings?.sandbox_webhook_secret 
+                : mpSettings?.production_webhook_secret;
 
             // Signature validation logic can be added here if needed
 

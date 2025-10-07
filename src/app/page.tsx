@@ -13,7 +13,7 @@ function formatCurrency(value: number) {
     return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
-const platforms = ['Telegram', 'WhatsApp', 'Instagram'];
+const platforms = ['Telegram', 'Discord'];
 
 // Trigger new deployment
 export default function HomePage() {

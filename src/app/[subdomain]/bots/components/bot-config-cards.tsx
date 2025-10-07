@@ -33,7 +33,9 @@ export function BotConfigCards({ initialConnections }: BotConfigCardsProps) {
                                     <Icon className="h-10 w-10" />
                                     <div>
                                         <CardTitle>{platform.charAt(0).toUpperCase() + platform.slice(1)}</CardTitle>
-                                        <CardDescription>{platform === 'whatsapp' ? 'Conta comercial' : platform === 'instagram' ? 'Mensagens diretas' : 'Bot pessoal'}</CardDescription>
+                                        <CardDescription>
+                                            {platform === 'telegram' ? 'Bot pessoal' : platform === 'discord' ? 'Bot de servidor' : 'Bot automatizado'}
+                                        </CardDescription>
                                     </div>
                                 </div>
                                 <Badge variant={isConnected ? 'default' : 'destructive'}>

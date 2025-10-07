@@ -2,15 +2,24 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
+import { logoutAction } from './actions';
 
 export default function ClientLogoutPage() {
   const router = useRouter();
 
   useEffect(() => {
-    // In a real app, this is where you would clear JWT tokens or other client-side session data.
-    sessionStorage.removeItem('userInfo');
-    // For now, we just redirect.
-    router.push('/login');
+    async function handleLogout() {
+      // Remove a sessão do servidor
+      await logoutAction();
+      
+      // Limpa sessionStorage (para compatibilidade com código antigo)
+      sessionStorage.removeItem('userInfo');
+      
+      // Redireciona para login
+      router.push('/login');
+    }
+
+    handleLogout();
   }, [router]);
 
   return (

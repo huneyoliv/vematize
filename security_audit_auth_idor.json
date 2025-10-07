@@ -1,0 +1,376 @@
+{
+  "audit_type": "authentication_session_authorization_idor",
+  "timestamp": "2025-10-07T00:00:00Z",
+  "scope": {
+    "focus": "Login flow, session creation/validation, access control, IDOR vulnerabilities, path parameter tampering",
+    "target": "Vematize SaaS Platform - Multi-tenant architecture"
+  },
+
+  "summary": "Auditoria focada em autenticação e autorização identificou 8 vulnerabilidades CRÍTICAS de IDOR (Insecure Direct Object Reference) em server actions. TODAS as 26 server actions que recebem 'subdomain' como parâmetro NÃO validam se o usuário autenticado pertence aquele tenant. Apenas o middleware protege as páginas, mas as server actions podem ser chamadas diretamente via requisição POST, permitindo que um atacante autenticado em um tenant acesse/modifique dados de qualquer outro tenant apenas alterando o parâmetro subdomain. Além disso, 2 páginas client-side (settings e plan) não possuem validação server-side. O fluxo de sessão está corretamente implementado com bcrypt, cookies httpOnly e validação no middleware, MAS a camada de autorização (resource ownership) está completamente ausente nas server actions.",
+
+  "top_recommendations": [
+    "CRÍTICO: Adicionar validação requireTenantAccess(subdomain) no INÍCIO de TODAS as 26 server actions antes de qualquer operação de banco de dados.",
+    "CRÍTICO: Converter páginas settings e plan para server components OU adicionar validação server-side via API route antes de renderizar dados sensíveis.",
+    "ALTA: Implementar helper centralizado validateTenantOwnership(session, subdomain) que seja obrigatório em todas as actions e possa ser auditado automaticamente."
+  ],
+
+  "findings": [
+    {
+      "id": "IDOR-001",
+      "title": "IDOR Crítico: Server Actions Sem Validação de Ownership em Settings",
+      "severity": "critical",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/settings/actions.ts",
+          "line_start": 10,
+          "line_end": 35
+        },
+        {
+          "path": "src/app/[subdomain]/settings/actions.ts",
+          "line_start": 38,
+          "line_end": 72
+        }
+      ],
+      "cwe": "CWE-639",
+      "description": "As funções getMercadoPagoSettings() e updateMercadoPagoSettings() recebem subdomain como parâmetro mas NÃO verificam se o usuário autenticado pertence a esse tenant. Um atacante pode chamar essas functions com subdomain de outro cliente e ler/modificar configurações de pagamento sensíveis incluindo tokens de API do Mercado Pago.",
+      "impact": "Atacante autenticado em qualquer tenant pode: ler todos os tokens de acesso (sandbox_access_token, production_access_token) e webhook secrets de QUALQUER outro tenant, modificar configurações de pagamento redirecionando fundos, desativar integrações de pagamento causando negação de serviço financeiro e obter controle total sobre o gateway de pagamento de vítimas.",
+      "reproduction": "1. Criar conta no tenant 'atacante' e fazer login. 2. Abrir DevTools e interceptar requisição POST para server action. 3. Chamar getMercadoPagoSettings('vitima') - função retorna todos os tokens. 4. Chamar updateMercadoPagoSettings('vitima', {malicious_config}) - configurações são alteradas. 5. Não há validação de propriedade em nenhuma etapa.",
+      "remediation": "1. Adicionar no início de AMBAS as funções: const session = await requireTenantAccess(subdomain); if (!session) throw new Error('Unauthorized');. 2. Remover parâmetro subdomain das funções e obter automaticamente da sessão: const session = await getCurrentSession(); const subdomain = session.subdomain;. 3. Nunca confiar em parâmetros fornecidos pelo cliente para identificar recursos.",
+      "suggested_fix": "// getMercadoPagoSettings\nimport { requireTenantAccess } from '@/lib/auth';\n\nexport async function getMercadoPagoSettings(subdomain: string) {\n  // VALIDAÇÃO CRÍTICA: Verifica se usuário tem acesso\n  const session = await requireTenantAccess(subdomain);\n  \n  const client = await clientPromise;\n  const db = client.db('vematize');\n  const tenant = await db.collection('tenants').findOne({ \n    subdomain,\n    _id: new ObjectId(session.userId) // Valida ownership\n  });\n  // resto do código...\n}",
+      "references": [
+        "https://owasp.org/www-project-web-security-testing-guide/latest/4-Web_Application_Security_Testing/05-Authorization_Testing/04-Testing_for_Insecure_Direct_Object_References",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ]
+    },
+    {
+      "id": "IDOR-002",
+      "title": "IDOR Crítico: Server Actions Sem Validação em Products",
+      "severity": "critical",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/products/actions.ts",
+          "line_start": 15,
+          "line_end": 44
+        },
+        {
+          "path": "src/app/[subdomain]/products/actions.ts",
+          "line_start": 46,
+          "line_end": 79
+        },
+        {
+          "path": "src/app/[subdomain]/products/actions.ts",
+          "line_start": 82,
+          "line_end": 161
+        },
+        {
+          "path": "src/app/[subdomain]/products/actions.ts",
+          "line_start": 163,
+          "line_end": 193
+        }
+      ],
+      "cwe": "CWE-639",
+      "description": "Funções getProducts(), getProductById(), saveProduct() e deleteProduct() não validam se o usuário tem permissão para acessar o subdomain fornecido. Embora as queries de banco filtrem por tenantId, o subdomain é aceito sem validação de ownership, permitindo enumerar produtos de outros tenants.",
+      "impact": "Atacante pode listar todos os produtos de qualquer tenant incluindo códigos de ativação não utilizados, preços, estoques e descrições sensíveis. Pode também criar/editar/deletar produtos em contas de terceiros, causando sabotagem comercial e fraude.",
+      "reproduction": "1. Login em tenant próprio. 2. Chamar getProducts('tenant-vitima') via DevTools. 3. Sistema retorna lista completa de produtos da vítima. 4. Chamar saveProduct('tenant-vitima', malicious_product) para inserir produtos falsos. 5. Chamar deleteProduct('tenant-vitima', 'product_id') para sabotar negócio.",
+      "remediation": "Adicionar requireTenantAccess(subdomain) no início de TODAS as 4 funções. Considerar refatorar para remover subdomain dos parâmetros e obter automaticamente da sessão do usuário.",
+      "suggested_fix": "export async function getProducts(subdomain: string): Promise<Product[]> {\n  // Validação obrigatória\n  await requireTenantAccess(subdomain);\n  \n  const client = await clientPromise;\n  // resto do código...\n}",
+      "references": [
+        "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ]
+    },
+    {
+      "id": "IDOR-003",
+      "title": "IDOR Crítico: Server Actions Sem Validação em Bots",
+      "severity": "critical",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/bots/actions.ts",
+          "line_start": 16,
+          "line_end": 34
+        },
+        {
+          "path": "src/app/[subdomain]/bots/actions.ts",
+          "line_start": 36,
+          "line_end": 53
+        },
+        {
+          "path": "src/app/[subdomain]/bots/actions.ts",
+          "line_start": 56,
+          "line_end": 132
+        }
+      ],
+      "cwe": "CWE-639",
+      "description": "Funções getBotConnections(), getBotConnectionDetails() e saveBotConnection() permitem acesso sem validação. A função saveBotConnection() é especialmente crítica pois também configura webhooks do Telegram automaticamente usando o token fornecido.",
+      "impact": "Atacante pode roubar tokens de bot de Telegram, Discord e WhatsApp de qualquer tenant. Pode modificar configurações de bot redirecionando mensagens e webhooks para servidores controlados pelo atacante. Pode desconectar bots causando interrupção de serviço.",
+      "reproduction": "1. Login em conta própria. 2. Chamar getBotConnectionDetails('vitima', 'telegram'). 3. Obter botToken completo da vítima. 4. Usar token para controlar bot da vítima. 5. Chamar saveBotConnection('vitima', 'telegram', {botToken: 'malicious'}) para sequestrar bot.",
+      "remediation": "Adicionar requireTenantAccess(subdomain) em todas as 3 funções. Considerar criptografar tokens sensíveis no banco de dados. Implementar auditoria de mudanças em configurações de bot.",
+      "suggested_fix": "export async function saveBotConnection(\n  subdomain: string,\n  platform: Platform,\n  data: { [key: string]: string }\n): Promise<{success: boolean; message: string}> {\n  // CRÍTICO: Validar ownership\n  await requireTenantAccess(subdomain);\n  \n  if (!subdomain || !platform || !data) {\n    return { success: false, message: 'Dados inválidos.' };\n  }\n  // resto do código...\n}",
+      "references": [
+        "https://owasp.org/www-project-top-ten/2017/A5_2017-Broken_Access_Control",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ]
+    },
+    {
+      "id": "IDOR-004",
+      "title": "IDOR Crítico: Server Actions Sem Validação em Plan/Subscriptions",
+      "severity": "critical",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/plan/actions.ts",
+          "line_start": 198,
+          "line_end": 295
+        },
+        {
+          "path": "src/app/[subdomain]/plan/actions.ts",
+          "line_start": 297,
+          "line_end": 517
+        }
+      ],
+      "cwe": "CWE-639",
+      "description": "Funções getCurrentPlanInfo() e createSubscriptionPayment() não validam ownership. Um atacante pode ver informações de plano de qualquer tenant e criar pagamentos falsos em nome de outros tenants.",
+      "impact": "Atacante pode visualizar status de assinatura, planos ativos e datas de expiração de qualquer tenant (violação de privacidade). Mais grave: pode criar intenções de pagamento falsas em nome de outros tenants, potencialmente gerando cobranças indevidas ou confundindo sistema de faturamento.",
+      "reproduction": "1. Login em tenant A. 2. Chamar getCurrentPlanInfo('tenant-B'). 3. Obter informações completas de assinatura de B. 4. Chamar createSubscriptionPayment('plan-id', 'tenant-B', 'pix') para criar pagamento falso em nome de B.",
+      "remediation": "Adicionar requireTenantAccess(subdomain) nas duas funções. A função createSubscriptionPayment é especialmente crítica e deve incluir validação extra antes de criar registros de pagamento.",
+      "suggested_fix": "export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlanInfo> {\n  await requireTenantAccess(subdomain);\n  \n  const client = await clientPromise;\n  // resto do código...\n}\n\nexport async function createSubscriptionPayment(\n  planId: string,\n  subdomain: string,\n  paymentMethod: 'pix' | 'card',\n  couponCode?: string\n) {\n  const session = await requireTenantAccess(subdomain);\n  \n  // Validação adicional: tenant deve ser o owner\n  if (session.type !== 'tenant') {\n    throw new Error('Unauthorized');\n  }\n  // resto...\n}",
+      "references": [
+        "https://owasp.org/www-community/attacks/Insecure_Direct_Object_Reference",
+        "https://cwe.mitre.org/data/definitions/639.html"
+      ]
+    },
+    {
+      "id": "IDOR-005",
+      "title": "IDOR Médio: Server Actions Sem Validação em Dashboard e Users",
+      "severity": "high",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/dashboard/actions.ts",
+          "line_start": 14,
+          "line_end": 53
+        },
+        {
+          "path": "src/app/[subdomain]/dashboard/actions.ts",
+          "line_start": 55,
+          "line_end": 91
+        },
+        {
+          "path": "src/app/[subdomain]/users/actions.ts",
+          "line_start": 32,
+          "line_end": 79
+        }
+      ],
+      "cwe": "CWE-639",
+      "description": "Funções getBotStats(), getDashboardStats() e getBotUsers() expõem métricas de negócio e lista de usuários sem validar ownership do subdomain.",
+      "impact": "Atacante pode enumerar todos os usuários de qualquer tenant (nome, username, telegramId, discordId, plano, data de entrada). Pode ver estatísticas de vendas, receita total, número de usuários ativos, revelando informações competitivas sensíveis. Violação de LGPD/GDPR ao expor dados pessoais de usuários sem autorização.",
+      "reproduction": "1. Login em tenant próprio. 2. Enumerar lista de subdomains conhecidos. 3. Para cada subdomain, chamar getBotUsers(subdomain) e getDashboardStats(subdomain). 4. Coletar dados de todos os tenants da plataforma. 5. Usar informações para vantagem competitiva ou venda de dados.",
+      "remediation": "Adicionar requireTenantAccess(subdomain) nas três funções. Considerar adicionar rate limiting para prevenir enumeração em massa de tenants.",
+      "suggested_fix": "export async function getBotUsers(subdomain: string): Promise<BotUser[]> {\n  await requireTenantAccess(subdomain);\n  noStore();\n  \n  const client = await clientPromise;\n  // resto...\n}",
+      "references": [
+        "https://owasp.org/www-project-top-ten/2017/A5_2017-Broken_Access_Control",
+        "https://gdpr.eu/what-is-gdpr/"
+      ]
+    },
+    {
+      "id": "AUTH-001",
+      "title": "Client-Side Pages Sem Validação Server-Side",
+      "severity": "high",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/settings/page.tsx",
+          "line_start": 1,
+          "line_end": 210
+        },
+        {
+          "path": "src/app/[subdomain]/plan/page.tsx",
+          "line_start": 1,
+          "line_end": 350
+        }
+      ],
+      "cwe": "CWE-862",
+      "description": "As páginas settings e plan são componentes client ('use client') e NÃO possuem validação de sessão server-side. Apenas o middleware protege essas rotas, mas middleware pode ser bypassado em certos cenários ou se houver bugs futuros.",
+      "impact": "Se middleware for bypassado ou houver erro de configuração, páginas renderizam sem validação. Client-side code pode expor informações sensíveis em bundle JavaScript. Violação do princípio defense-in-depth ao depender de uma única camada de proteção.",
+      "reproduction": "1. Acessar /{subdomain}/settings diretamente. 2. Middleware bloqueia, mas se houver falha no middleware ou erro de configuração, página renderiza. 3. Client-side code executa sem validação adicional. 4. useEffect chama server actions que também não validam (vulnerabilidades IDOR-001 a 004).",
+      "remediation": "Opção 1 (Recomendado): Converter ambas páginas para server components e adicionar requireTenantAccess no topo. Opção 2: Manter como client component mas criar API route /api/validate-session que é chamada antes de renderizar qualquer dado. Opção 3: Adicionar validação em useEffect que bloqueia renderização se sessão inválida.",
+      "suggested_fix": "// Converter para server component\n// Remove 'use client'\nimport { requireTenantAccess } from '@/lib/auth';\nimport { redirect } from 'next/navigation';\n\nexport default async function ClientSettingsPage({ params }: { params: { subdomain: string } }) {\n  try {\n    await requireTenantAccess(params.subdomain);\n  } catch (error) {\n    redirect('/login');\n  }\n  \n  // Buscar dados server-side\n  const settings = await getMercadoPagoSettings(params.subdomain);\n  \n  return <SettingsClientComponent settings={settings} subdomain={params.subdomain} />;\n}",
+      "references": [
+        "https://nextjs.org/docs/app/building-your-application/rendering/composition-patterns",
+        "https://cwe.mitre.org/data/definitions/862.html"
+      ]
+    },
+    {
+      "id": "AUTH-002",
+      "title": "Credenciais Hardcoded de Admin Inicial",
+      "severity": "critical",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/krov/login/actions.ts",
+          "line_start": 26,
+          "line_end": 28
+        }
+      ],
+      "cwe": "CWE-798",
+      "description": "Sistema permite login com usuário 'admin' e senha 'admin' quando não há administradores cadastrados. Esta credencial está visível no código-fonte público.",
+      "impact": "Em uma instalação nova ou após reset do banco de dados, atacante pode obter acesso administrativo total usando credenciais padrão 'admin/admin'. Acesso admin permite controlar todos os tenants, configurações globais e dados sensíveis.",
+      "reproduction": "1. Instalar aplicação nova ou limpar collection 'admins'. 2. Acessar /krov/login. 3. Inserir username: admin, password: admin. 4. Obter acesso admin completo sem desafio de segurança.",
+      "remediation": "Implementar fluxo de setup inicial seguro: 1. Gerar token único de setup em primeira execução. 2. Enviar token para email configurado em variável de ambiente. 3. Exigir token + senha forte no primeiro login. 4. Após setup, desabilitar login padrão permanentemente. 5. Adicionar flag SETUP_COMPLETED no banco.",
+      "suggested_fix": "// Remover linhas 26-28 e substituir:\nif (adminCount === 0) {\n  const setupToken = process.env.INITIAL_SETUP_TOKEN;\n  if (!setupToken || values.password !== setupToken) {\n    return { success: false, message: 'Token de setup inválido. Verifique configurações.' };\n  }\n  // Forçar mudança de senha imediatamente\n  return { success: true, message: 'Setup inicial. Você deve criar um admin seguro agora.', temporary: true, forcePasswordChange: true };\n}",
+      "references": [
+        "https://cwe.mitre.org/data/definitions/798.html",
+        "https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password"
+      ]
+    },
+    {
+      "id": "SEC-001",
+      "title": "Ausência de Validação de Sessão em Server Actions",
+      "severity": "critical",
+      "confidence": "high",
+      "files": [
+        {
+          "path": "src/app/[subdomain]/settings/actions.ts",
+          "line_start": 1,
+          "line_end": 72
+        },
+        {
+          "path": "src/app/[subdomain]/products/actions.ts",
+          "line_start": 1,
+          "line_end": 193
+        },
+        {
+          "path": "src/app/[subdomain]/bots/actions.ts",
+          "line_start": 1,
+          "line_end": 244
+        },
+        {
+          "path": "src/app/[subdomain]/plan/actions.ts",
+          "line_start": 1,
+          "line_end": 517
+        },
+        {
+          "path": "src/app/[subdomain]/users/actions.ts",
+          "line_start": 1,
+          "line_end": 79
+        },
+        {
+          "path": "src/app/[subdomain]/dashboard/actions.ts",
+          "line_start": 1,
+          "line_end": 91
+        }
+      ],
+      "cwe": "CWE-306",
+      "description": "NENHUMA das 26 server actions valida a sessão do usuário ou verifica autenticação. Todas dependem exclusivamente do middleware para proteção, mas server actions podem ser invocadas diretamente via requisição POST sem passar pelo middleware de páginas.",
+      "impact": "Atacante pode invocar server actions diretamente sem estar autenticado se conseguir bypassar middleware. Mesmo autenticado, pode acessar recursos de outros tenants (IDOR). Violação completa do princípio defense-in-depth. Sistema confia que apenas código client legítimo chamará as actions.",
+      "reproduction": "1. Capturar requisição POST de uma server action. 2. Reproduzir requisição diretamente usando curl/Postman sem cookie de sessão. 3. Dependendo da configuração do Next.js, action pode executar sem validação. 4. Mesmo com sessão, passar subdomain diferente acessa dados de outros tenants.",
+      "remediation": "Implementar política obrigatória: 1. TODA server action deve chamar await getCurrentSession() ou requireAuth() no início. 2. Actions que operam em recursos específicos de tenant devem usar requireTenantAccess(subdomain). 3. Criar wrapper/decorator que força validação automaticamente. 4. Implementar lint rule que falha se action não tiver validação.",
+      "suggested_fix": "// Criar wrapper utilitário\nexport function withTenantAuth<T extends any[], R>(\n  handler: (subdomain: string, ...args: T) => Promise<R>\n) {\n  return async (subdomain: string, ...args: T): Promise<R> => {\n    await requireTenantAccess(subdomain);\n    return handler(subdomain, ...args);\n  };\n}\n\n// Usar em todas as actions\nexport const getProducts = withTenantAuth(async (subdomain: string) => {\n  const client = await clientPromise;\n  // resto do código...\n});",
+      "references": [
+        "https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#authentication-and-authorization",
+        "https://cwe.mitre.org/data/definitions/306.html"
+      ]
+    }
+  ],
+
+  "additional_observations": {
+    "positive_findings": [
+      "Middleware implementa validação robusta de sessão e subdomain para páginas",
+      "Sessões são armazenadas server-side no MongoDB com expiração adequada",
+      "Cookies configurados com httpOnly=true, sameSite=strict, secure em produção",
+      "Senhas hashadas com bcrypt (algoritmo seguro)",
+      "Validação de input usando Zod em todas as server actions",
+      "Queries de banco filtram por tenantId quando buscam recursos",
+      "ObjectId validation previne injection em alguns casos"
+    ],
+    "architectural_concerns": [
+      "Arquitetura multi-tenant depende fortemente de subdomain passado como parâmetro ao invés de obter automaticamente da sessão",
+      "Client components precisam passar subdomain manualmente para server actions, criando oportunidade para manipulação",
+      "Não há camada centralizada de autorização - cada action deveria validar, mas nenhuma valida",
+      "Ausência de audit logging para operações sensíveis dificulta detecção de exploração",
+      "Falta de rate limiting permite enumeração em massa de recursos de outros tenants"
+    ]
+  },
+
+  "attack_scenarios": {
+    "scenario_1_credentials_theft": {
+      "description": "Atacante rouba tokens de API de todos os tenants",
+      "steps": [
+        "Criar conta gratuita em qualquer tenant",
+        "Fazer login e obter sessão válida",
+        "Enumerar lista de subdomains conhecidos (via Google, redes sociais, etc)",
+        "Para cada subdomain, chamar getMercadoPagoSettings(subdomain)",
+        "Coletar todos os access_tokens, webhook_secrets",
+        "Usar tokens para processar pagamentos falsos ou redirecionar fundos"
+      ],
+      "impact": "critical"
+    },
+    "scenario_2_business_sabotage": {
+      "description": "Atacante sabota negócio de competidores",
+      "steps": [
+        "Identificar subdomain de competidor",
+        "Chamar deleteProduct() para todos os produtos do competidor",
+        "Chamar saveBotConnection() com configurações inválidas para quebrar bots",
+        "Chamar updateMercadoPagoSettings() para desativar pagamentos",
+        "Competidor perde vendas e credibilidade"
+      ],
+      "impact": "critical"
+    },
+    "scenario_3_data_harvesting": {
+      "description": "Atacante coleta dados de todos os usuários da plataforma",
+      "steps": [
+        "Enumerar todos os subdomains",
+        "Para cada subdomain, chamar getBotUsers()",
+        "Coletar telegramId, discordId, nomes, usernames",
+        "Exportar base de dados completa",
+        "Vender dados ou usar para spam/phishing direcionado"
+      ],
+      "impact": "high"
+    }
+  },
+
+  "compliance_impact": {
+    "lgpd": "Violação crítica - sistema permite acesso não autorizado a dados pessoais de usuários sem validação de permissão. Art. 46 LGPD exige controles de acesso adequados.",
+    "gdpr": "Violação do Art. 32 GDPR - ausência de medidas técnicas apropriadas para garantir segurança do processamento. Possível multa de até 4% da receita global.",
+    "pci_dss": "Se processar pagamentos, violação dos requisitos 6.5.8 (access control) e 7 (restrict access to cardholder data). Tokens de payment gateway expostos sem controle de acesso adequado."
+  },
+
+  "remediation_priority": {
+    "immediate": [
+      "Adicionar requireTenantAccess() em TODAS as 26 server actions",
+      "Remover credencial hardcoded admin/admin",
+      "Adicionar logging de tentativas de acesso cross-tenant"
+    ],
+    "short_term": [
+      "Converter páginas client settings e plan para server components",
+      "Implementar rate limiting em server actions",
+      "Criar wrapper withTenantAuth() obrigatório para todas actions",
+      "Adicionar audit log de todas operações sensíveis"
+    ],
+    "long_term": [
+      "Refatorar arquitetura para obter subdomain da sessão ao invés de parâmetro",
+      "Implementar row-level security no MongoDB",
+      "Adicionar testes automatizados de autorização",
+      "Implementar sistema de permissões granulares por recurso"
+    ]
+  },
+
+  "testing_recommendations": {
+    "manual_tests": [
+      "Tentar acessar /{other-subdomain}/dashboard estando logado em tenant diferente",
+      "Capturar requisição de server action e alterar parâmetro subdomain",
+      "Tentar invocar server actions diretamente via POST sem passar por página",
+      "Enumerar recursos de outros tenants via DevTools modificando calls"
+    ],
+    "automated_tests": [
+      "Criar test suite que valida toda server action tem requireTenantAccess()",
+      "Implementar integration tests que tentam IDOR em cada action",
+      "Adicionar linter custom que falha se action recebe subdomain sem validar sessão",
+      "Criar fuzzer que tenta acessar recursos com diferentes subdomains"
+    ]
+  }
+}
+

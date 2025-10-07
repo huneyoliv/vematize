@@ -17,7 +17,7 @@ export default async function ClientDashboardLayout({
     return (
         <div className="flex min-h-screen bg-secondary/10">
             <ClientSidebar />
-            <main className="flex-1 flex-col overflow-y-auto">
+            <main className="flex-1 flex-col overflow-y-auto pt-16 lg:pt-0">
                 <div className="absolute top-4 right-4 z-20">
                     <UserNav userType="client" />
                 </div>

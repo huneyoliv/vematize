@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSaasPlans, getSettings } from "./actions";
 import { PlansManager } from "./components/plans-manager";
 import { PaymentSettingsForm } from "./components/payment-settings-form";
+import { SecuritySettings } from "./components/security-settings";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -26,6 +27,10 @@ export default async function KrovSettingsPage() {
       <Separator />
 
       <PaymentSettingsForm settings={settings} />
+
+      <Separator />
+
+      <SecuritySettings />
 
       <Separator />
 

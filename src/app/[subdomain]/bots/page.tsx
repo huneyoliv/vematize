@@ -1,7 +1,16 @@
 import { getBotConnections } from "./actions";
 import { BotConfigCards } from "./components/bot-config-cards";
+import { requireTenantAccess } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
 export default async function MyBotsPage({ params }: { params: { subdomain: string } }) {
+    // Protege a rota - requer autenticação e acesso ao subdomain
+    try {
+        await requireTenantAccess(params.subdomain);
+    } catch (error) {
+        redirect('/login');
+    }
+
     const connections = await getBotConnections(params.subdomain);
 
     return (

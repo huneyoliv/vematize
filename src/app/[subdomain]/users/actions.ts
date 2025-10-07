@@ -32,6 +32,9 @@ function mapDbStateToStatus(state: string | null | undefined): BotUser['status']
 export async function getBotUsers(subdomain: string): Promise<BotUser[]> {
     noStore();
     try {
+        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
+        await requireTenantAccess(subdomain);
+
         const client = await clientPromise;
         const db = client.db('vematize');
         
@@ -54,7 +57,13 @@ export async function getBotUsers(subdomain: string): Promise<BotUser[]> {
             const joinDate = objectId.getTimestamp();
 
             const usernameDisplay = user.username ? `@${user.username}` : 'N/A';
-            const identifier = `${usernameDisplay} (ID: ${user.telegramId})`;
+            let identifier = usernameDisplay;
+            
+            if (user.telegramId) {
+                identifier = `${usernameDisplay} (Telegram: ${user.telegramId})`;
+            } else if (user.discordId) {
+                identifier = `${usernameDisplay} (Discord: ${user.discordId})`;
+            }
 
             return {
                 id: user._id.toString(),

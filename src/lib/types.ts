@@ -7,6 +7,7 @@ export interface User {
   tenantId: string;
   telegramId?: number;
   whatsappId?: string;
+  discordId?: string;
   name?: string;
   username?: string;
   state?: 'active' | 'inactive' | 'expired';
@@ -75,8 +76,17 @@ export interface Tenant {
     telegram?: {
       botToken: string;
     };
+    discord?: {
+      botToken: string;
+      clientId: string;
+    };
   };
   botConfig?: BotConfig;
+  discordSettings?: z.infer<typeof import('./schemas').DiscordSettingsSchema>;
+  webhooks?: {
+    untrusted?: boolean; // Marcado como true quando webhook não tem secret configurado
+    lastUntrustedAlert?: Date; // Última vez que alerta foi mostrado
+  };
   paymentIntegrations?: {
     mercadopago?: {
       mode: 'sandbox' | 'production';
@@ -137,10 +147,17 @@ export interface Sale {
     userId: string;
     telegramChatId?: number;
     telegramMessageId?: number;
+    discordChannelId?: string;
+    discordMessageId?: string;
+    discordThreadId?: string;
+    quantity?: number;
+    couponCode?: string;
     status: 'pending' | 'approved' | 'failed' | 'refunded' | 'cancelled';
     paymentGateway: string;
     createdAt: Date;
     updatedAt?: Date;
+    webhookVerified?: boolean; // true se webhook foi verificado com assinatura
+    providerVerified?: boolean; // true se status foi verificado diretamente com o provedor
     paymentDetails?: {
         init_point?: string;
         preferenceId?: string;
@@ -170,3 +187,6 @@ export interface PaymentIntegrations {
 export interface KrovSettings {
     paymentIntegrations?: PaymentIntegrations;
 }
+
+export type Coupon = z.infer<typeof import('./schemas').CouponSchema>;
+
