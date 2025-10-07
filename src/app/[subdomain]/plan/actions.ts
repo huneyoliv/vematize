@@ -199,7 +199,24 @@ export async function getAvailablePlans(): Promise<SaasPlan[]> {
 export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlanInfo> {
   try {
     // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-    await requireTenantAccess(subdomain);
+    // Tenta validar, mas se não houver sessão, retorna dados públicos básicos
+    try {
+      await requireTenantAccess(subdomain);
+    } catch (authError: any) {
+      // Se não autenticado, retorna info básica sem dados sensíveis
+      if (authError.message === 'Unauthorized') {
+        return {
+          status: 'none',
+          statusLabel: 'Não autenticado',
+          planName: 'N/A',
+          expiresAt: null,
+          trialEndsAt: null,
+          planId: null,
+        };
+      }
+      // Se Forbidden (tentando acessar outro tenant), lança erro
+      throw authError;
+    }
 
     const client = await clientPromise;
     const db = client.db('vematize');

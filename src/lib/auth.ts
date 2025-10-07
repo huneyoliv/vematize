@@ -118,9 +118,20 @@ export async function requireAuth(type?: 'admin' | 'tenant'): Promise<SessionDat
 
 // Helper para verificar se o usuário tem acesso a um subdomain específico
 export async function requireTenantAccess(subdomain: string): Promise<SessionData> {
-    const session = await requireAuth('tenant');
+    const session = await getCurrentSession();
 
-    if (session.subdomain !== subdomain) {
+    // Se não há sessão, lança Unauthorized
+    if (!session) {
+        throw new Error('Unauthorized');
+    }
+
+    // Admin tem acesso a todos os subdomains
+    if (session.type === 'admin') {
+        return session;
+    }
+
+    // Tenant só tem acesso ao próprio subdomain
+    if (session.type === 'tenant' && session.subdomain !== subdomain) {
         throw new Error('Forbidden');
     }
 

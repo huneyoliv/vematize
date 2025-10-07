@@ -1,39 +1,60 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
-import { Tenant } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-
-/**
- * Retorna o status da assinatura de um tenant.
- * Este endpoint é para ser usado internamente pelo middleware.
- */
 export async function GET(
-  request: Request,
+  request: NextRequest,
   { params }: { params: { subdomain: string } }
 ) {
-  const { subdomain } = params;
-
-  if (!subdomain) {
-    return NextResponse.json({ error: 'Subdomain is required' }, { status: 400 });
-  }
-
   try {
-    const db = (await clientPromise).db('vematize');
-    const tenant = await db.collection<Tenant>('tenants').findOne(
+    const { subdomain } = params;
+
+    if (!subdomain) {
+      return NextResponse.json(
+        { error: 'Subdomain is required' },
+        { status: 400 }
+      );
+    }
+
+    const client = await clientPromise;
+    const db = client.db('vematize');
+    const tenantsCollection = db.collection('tenants');
+
+    const tenant = await tenantsCollection.findOne(
       { subdomain },
-      { projection: { subscriptionStatus: 1 } } // Otimiza a busca, retornando apenas o campo necessário
+      { projection: { subscriptionStatus: 1, trialEndsAt: 1, planId: 1 } }
     );
 
     if (!tenant) {
-      return NextResponse.json({ status: 'not_found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Tenant not found' },
+        { status: 404 }
+      );
     }
+
+    // Determina status baseado em subscription e trial
+    let status = 'active';
     
-    return NextResponse.json({ status: tenant.subscriptionStatus });
+    if (tenant.subscriptionStatus === 'inactive') {
+      status = 'inactive';
+    } else if (tenant.subscriptionStatus === 'trial') {
+      const trialEndsAt = new Date(tenant.trialEndsAt);
+      if (trialEndsAt < new Date()) {
+        status = 'inactive'; // Trial expirado
+      }
+    }
+
+    return NextResponse.json({
+      status,
+      subscriptionStatus: tenant.subscriptionStatus,
+      trialEndsAt: tenant.trialEndsAt,
+      planId: tenant.planId,
+    });
 
   } catch (error) {
-    console.error(`[API Tenant Status] Erro ao buscar o status para o subdomínio ${subdomain}:`, error);
-    // Retorna um status 'active' como fallback seguro para não bloquear usuários legítimos em caso de erro no DB.
-    return NextResponse.json({ status: 'active' }, { status: 500 });
+    console.error('[API] Error fetching tenant status:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
-} 
+}
