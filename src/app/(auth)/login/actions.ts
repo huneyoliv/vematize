@@ -152,9 +152,6 @@ export async function unifiedLogin(
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
         });
-
-        // Usa username do banco para redirect
-        const username = (tenant as any).username || tenant.subdomain;
         
         return {
           success: true,
