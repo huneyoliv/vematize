@@ -132,11 +132,15 @@ export async function unifiedLogin(
       if (isPasswordValid) {
         // ✅ LOGIN TENANT BEM-SUCEDIDO
         const { createSession } = await import('@/lib/auth');
+        
+        // Usa username do banco (campo principal) ao invés de subdomain
+        const username = (tenant as any).username || tenant.subdomain;
+        
         const token = await createSession({
           userId: tenant._id.toString(),
           email: tenant.ownerEmail,
           name: tenant.ownerName || 'Cliente',
-          subdomain: tenant.subdomain,
+          subdomain: username, // Usa username do banco
           type: 'tenant',
         });
 
@@ -149,14 +153,17 @@ export async function unifiedLogin(
           path: '/',
         });
 
+        // Usa username do banco para redirect
+        const username = (tenant as any).username || tenant.subdomain;
+        
         return {
           success: true,
           message: 'Login bem-sucedido!',
           name: tenant.ownerName || 'Cliente',
           email: tenant.ownerEmail,
           userType: 'tenant',
-          redirectTo: `/${tenant.subdomain}/dashboard`,
-          subdomain: tenant.subdomain,
+          redirectTo: `/${username}/dashboard`,
+          subdomain: username,
         };
       }
     }
