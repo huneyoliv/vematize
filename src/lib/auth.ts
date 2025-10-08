@@ -8,8 +8,7 @@ export type SessionData = {
     userId: string;
     email: string;
     name: string;
-    username?: string; // Username do tenant (não usado para admin)
-    subdomain?: string; // Deprecated - mantido para compatibilidade
+    subdomain?: string; // For tenant users
     type: 'admin' | 'tenant';
     createdAt: Date;
     expiresAt: Date;
@@ -117,9 +116,8 @@ export async function requireAuth(type?: 'admin' | 'tenant'): Promise<SessionDat
     return session;
 }
 
-// Helper para verificar se o usuário tem acesso a um username/subdomain específico
-// @param identifier - username ou subdomain (para compatibilidade)
-export async function requireTenantAccess(identifier: string): Promise<SessionData> {
+// Helper para verificar se o usuário tem acesso a um subdomain específico
+export async function requireTenantAccess(subdomain: string): Promise<SessionData> {
     const session = await getCurrentSession();
 
     // Se não há sessão, lança Unauthorized
@@ -127,18 +125,14 @@ export async function requireTenantAccess(identifier: string): Promise<SessionDa
         throw new Error('Unauthorized');
     }
 
-    // Admin tem acesso a todos os tenants
+    // Admin tem acesso a todos os subdomains
     if (session.type === 'admin') {
         return session;
     }
 
-    // Tenant só tem acesso ao próprio username/subdomain
-    if (session.type === 'tenant') {
-        // Verifica tanto username quanto subdomain para compatibilidade
-        const hasAccess = session.username === identifier || session.subdomain === identifier;
-        if (!hasAccess) {
-            throw new Error('Forbidden');
-        }
+    // Tenant só tem acesso ao próprio subdomain
+    if (session.type === 'tenant' && session.subdomain !== subdomain) {
+        throw new Error('Forbidden');
     }
 
     return session;

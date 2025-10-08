@@ -1,40 +1,24 @@
-import { getCurrentSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-
-// Componentes das dashboards específicas
-import AdminDashboard from './components/admin-dashboard';
-import TenantDashboard from './components/tenant-dashboard';
+import { getCurrentSession } from '@/lib/auth';
 
 /**
- * Dashboard Unificada - Adaptável
+ * Página de Dashboard Unificada
  * 
- * Detecta automaticamente o tipo de usuário e renderiza
- * a dashboard apropriada:
- * - Admin → Dashboard Krov com métricas globais
- * - Tenant → Dashboard do cliente com suas métricas
+ * Redireciona automaticamente para o dashboard correto
  */
-export default async function UnifiedDashboard() {
-  // Obtém sessão atual
+export default async function DashboardRedirect() {
   const session = await getCurrentSession();
 
-  // Se não autenticado, redireciona para login
   if (!session) {
     redirect('/login');
   }
 
-  // Renderiza dashboard baseado no tipo de usuário
   if (session.type === 'admin') {
-    return <AdminDashboard />;
+    redirect('/krov/dashboard');
+  } else if (session.type === 'tenant' && session.subdomain) {
+    redirect(`/${session.subdomain}/dashboard`);
   }
 
-  if (session.type === 'tenant') {
-    // Usa username se disponível, senão subdomain (compatibilidade)
-    const identifier = session.username || session.subdomain;
-    if (identifier) {
-      return <TenantDashboard subdomain={identifier} />;
-    }
-  }
-
-  // Fallback (não deveria chegar aqui)
+  // Fallback
   redirect('/login');
 }

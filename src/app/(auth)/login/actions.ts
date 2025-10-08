@@ -27,9 +27,9 @@ type UnifiedLoginError = {
 
 export type UnifiedLoginResult = UnifiedLoginSuccess | UnifiedLoginError;
 
-// Schema unificado que aceita username
+// Schema unificado que aceita email ou username
 const UnifiedLoginSchema = z.object({
-  username: z.string().min(1, 'Username é obrigatório'),
+  email: z.string().min(1, 'Email ou usuário é obrigatório'),
   password: z.string().min(1, 'Senha é obrigatória'),
 });
 
@@ -50,7 +50,7 @@ export async function unifiedLogin(
     
     // Verifica setup inicial (admin/admin)
     const adminCount = await adminCollection.countDocuments();
-    if (adminCount === 0 && validatedData.username === 'admin' && validatedData.password === 'admin') {
+    if (adminCount === 0 && validatedData.email === 'admin' && validatedData.password === 'admin') {
       // Setup inicial - criar admin temporário
       const { createSession } = await import('@/lib/auth');
       const tempAdminId = new ObjectId();
@@ -71,19 +71,22 @@ export async function unifiedLogin(
         path: '/',
       });
 
-        return {
-          success: true,
-          message: 'Setup inicial - Configure sua conta de administrador',
-          name: 'Administrador',
-          email: 'admin',
-          userType: 'admin',
-          redirectTo: '/dashboard',
-        };
+      return {
+        success: true,
+        message: 'Setup inicial - Configure sua conta de administrador',
+        name: 'Administrador',
+        email: 'admin',
+        userType: 'admin',
+        redirectTo: '/krov/dashboard',
+      };
     }
 
-    // Tenta login como admin
+    // Tenta login como admin (usando email como username)
     const admin = await adminCollection.findOne({ 
-      username: validatedData.username
+      $or: [
+        { username: validatedData.email },
+        { email: validatedData.email }
+      ]
     });
 
     if (admin) {
@@ -114,14 +117,14 @@ export async function unifiedLogin(
           name: admin.username,
           email: admin.email || admin.username,
           userType: 'admin',
-          redirectTo: '/dashboard',
+          redirectTo: '/krov/dashboard',
         };
       }
     }
 
     // 2️⃣ TENTATIVA 2: LOGIN COMO TENANT
     const tenantsCollection = db.collection<TenantDocument>('tenants');
-    const tenant = await tenantsCollection.findOne({ username: validatedData.username });
+    const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
 
     if (tenant && tenant.passwordHash) {
       const isPasswordValid = await bcrypt.compare(validatedData.password, tenant.passwordHash);
@@ -133,8 +136,7 @@ export async function unifiedLogin(
           userId: tenant._id.toString(),
           email: tenant.ownerEmail,
           name: tenant.ownerName || 'Cliente',
-          username: tenant.username,
-          subdomain: tenant.subdomain || tenant.username, // Compatibilidade
+          subdomain: tenant.subdomain,
           type: 'tenant',
         });
 
@@ -153,8 +155,8 @@ export async function unifiedLogin(
           name: tenant.ownerName || 'Cliente',
           email: tenant.ownerEmail,
           userType: 'tenant',
-          redirectTo: '/dashboard',
-          subdomain: tenant.username, // Retorna username (compatibilidade com código existente)
+          redirectTo: `/${tenant.subdomain}/dashboard`,
+          subdomain: tenant.subdomain,
         };
       }
     }
@@ -162,7 +164,7 @@ export async function unifiedLogin(
     // ❌ Nenhuma credencial válida encontrada
     return { 
       success: false, 
-      message: 'Username ou senha inválidos.' 
+      message: 'E-mail/usuário ou senha inválidos.' 
     };
 
   } catch (error) {
@@ -201,16 +203,10 @@ export async function loginClient(
     const db = client.db('vematize');
     const tenantsCollection = db.collection<TenantDocument>('tenants');
 
-    // Busca por username (novo sistema)
-    const tenant = await tenantsCollection.findOne({ 
-      $or: [
-        { username: validatedData.username },
-        { subdomain: validatedData.username }
-      ]
-    });
+    const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
 
     if (!tenant || !tenant.passwordHash) {
-      return { success: false, message: 'Username ou senha inválidos.' };
+      return { success: false, message: 'E-mail ou senha inválidos.' };
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -219,7 +215,7 @@ export async function loginClient(
     );
 
     if (!isPasswordValid) {
-      return { success: false, message: 'Username ou senha inválidos.' };
+      return { success: false, message: 'E-mail ou senha inválidos.' };
     }
 
     // Cria sessão segura server-side

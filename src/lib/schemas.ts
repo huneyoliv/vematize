@@ -12,31 +12,17 @@ export const CreateAdminSchema = z.object({
   password: PasswordSchema, 
 });
 
-export const UsernameSchema = z.string()
-    .min(3, { message: "O username deve ter pelo menos 3 caracteres." })
-    .max(20, { message: "O username deve ter no máximo 20 caracteres." })
-    .regex(/^[a-z0-9_]+$/, { message: "Use apenas letras minúsculas, números e underscore (_)." });
-
 export const ClientRegisterSchema = z.object({
     name: z.string().min(3, { message: "O nome deve ter pelo menos 3 caracteres." }),
-    username: UsernameSchema,
+    subdomain: z.string().min(3, { message: "O subdomínio deve ter pelo menos 3 caracteres." }).regex(/^[a-z0-9-]+$/, { message: "Use apenas letras minúsculas, números e hífens." }),
     cpfCnpj: z.string().min(11, { message: "CPF/CNPJ inválido."}), 
     email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
     password: PasswordSchema, 
 });
 
 export const ClientLoginSchema = z.object({
-  username: z.string().min(1, { message: "O username é obrigatório." }),
-  password: z.string().min(1, { message: "A senha é obrigatória." }), 
-});
-
-export const ForgotPasswordSchema = z.object({
   email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
-});
-
-export const ResetPasswordSchema = z.object({
-  token: z.string().min(1, { message: "Token é obrigatório." }),
-  password: PasswordSchema,
+  password: z.string().min(1, { message: "A senha é obrigatória." }), 
 });
 
 export const MercadoPagoSettingsSchema = z.object({
@@ -164,10 +150,6 @@ export const BotConfigSchema = z.object({
   flows: z.array(BotFlowSchema),
   inactiveSubscriptionMessage: z.string().optional(),
   deliveryMessage: z.string().optional(),
-  discord: z.object({
-    botToken: z.string().optional(),
-    clientId: z.string().optional(),
-  }).optional(),
 });
 
 export const KrovSettingsSchema = z.object({

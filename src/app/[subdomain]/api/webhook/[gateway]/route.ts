@@ -269,11 +269,11 @@ export async function POST(
                 // PROTEÇÃO 5: LOG DE ALERTA PARA WEBHOOKS NÃO VERIFICADOS
                 // ==========================================
                 if (isUntrusted) {
-                await logWebhookSecurityAlert({
-                    tenantId: tenant._id.toString(),
-                    subdomain: tenant.username || tenant.subdomain || 'unknown',
-                    alertType: 'untrusted_webhook_payment',
-                    severity: 'critical',
+                    await logWebhookSecurityAlert({
+                        tenantId: tenant._id.toString(),
+                        subdomain: tenant.subdomain,
+                        alertType: 'untrusted_webhook_payment',
+                        severity: 'critical',
                         details: {
                             saleId,
                             paymentId,

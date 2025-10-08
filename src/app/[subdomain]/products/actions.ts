@@ -7,7 +7,6 @@ import { ObjectId } from 'mongodb';
 import clientPromise from "@/lib/mongodb";
 import { ProductSchema } from "@/lib/schemas";
 import type { Tenant, Product } from "@/lib/types";
-import { requireTenantAccess } from '@/lib/auth';
 
 // The document type in the 'products' collection
 type ProductDocument = Omit<Product, 'id'> & { _id: ObjectId };

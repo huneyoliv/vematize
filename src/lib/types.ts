@@ -53,13 +53,10 @@ export type BotConfig = z.infer<typeof BotConfigSchema>;
 export interface Tenant {
   _id: ObjectId;
   ownerName: string;
-  username: string; // Username único para login e identificação
-  subdomain?: string; // Deprecated - mantido para compatibilidade
+  subdomain: string;
   ownerEmail: string;
   passwordHash: string;
   cpfCnpj: string;
-  passwordResetToken?: string; // Token para recuperação de senha
-  passwordResetExpires?: Date; // Expiração do token
   trialEndsAt?: string;
   planId?: string;
   subscriptionProvider?: 'mercadopago';
