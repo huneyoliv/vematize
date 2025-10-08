@@ -63,8 +63,8 @@ export default function ClientLoginPage() {
         };
         sessionStorage.setItem('userInfo', JSON.stringify(userInfo));
         
-        // Redireciona para dashboard unificado (será redirecionado automaticamente)
-        router.push('/dashboard');
+        // Redireciona diretamente para o dashboard correto
+        router.push(result.redirectTo);
       } else {
         toast({
           variant: 'destructive',
