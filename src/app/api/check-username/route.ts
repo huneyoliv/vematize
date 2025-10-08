@@ -29,8 +29,13 @@ export async function GET(request: NextRequest) {
     const client = await clientPromise;
     const db = client.db('vematize');
 
-    // Verifica se username já existe
-    const existingTenant = await db.collection('tenants').findOne({ username });
+    // Verifica se username já existe (como username OU subdomain para compatibilidade)
+    const existingTenant = await db.collection('tenants').findOne({
+      $or: [
+        { username },
+        { subdomain: username } // Verifica subdomain antigos também
+      ]
+    });
 
     if (existingTenant) {
       return NextResponse.json({

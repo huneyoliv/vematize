@@ -21,13 +21,19 @@ export async function registerClient(
     const db = client.db('vematize');
     const tenantsCollection = db.collection('tenants');
 
-    // Check for existing username or email
+    // Check for existing username (também verifica subdomain antigos) ou email
     const existingTenant = await tenantsCollection.findOne({
-      $or: [{ username: validatedData.username }, { ownerEmail: validatedData.email }],
+      $or: [
+        { username: validatedData.username },
+        { subdomain: validatedData.username }, // Verifica se username já existe como subdomain antigo
+        { ownerEmail: validatedData.email }
+      ],
     });
 
     if (existingTenant) {
-      if (existingTenant.username === validatedData.username) {
+      // Verifica username ou subdomain
+      if (existingTenant.username === validatedData.username || 
+          existingTenant.subdomain === validatedData.username) {
         return { success: false, message: 'Este username já está em uso.' };
       }
       if (existingTenant.ownerEmail === validatedData.email) {

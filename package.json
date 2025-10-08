@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:username": "node scripts/migrate-subdomain-to-username.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^4.1.3",
