@@ -122,6 +122,7 @@ export async function requireTenantAccess(subdomain: string): Promise<SessionDat
 
     // Se não há sessão, lança Unauthorized
     if (!session) {
+        console.error('[requireTenantAccess] No session found');
         throw new Error('Unauthorized');
     }
 
@@ -130,8 +131,15 @@ export async function requireTenantAccess(subdomain: string): Promise<SessionDat
         return session;
     }
 
+    // Tenant precisa ter subdomain definido
+    if (session.type === 'tenant' && !session.subdomain) {
+        console.error('[requireTenantAccess] Tenant session without subdomain:', session);
+        throw new Error('Invalid session: subdomain missing');
+    }
+
     // Tenant só tem acesso ao próprio subdomain
     if (session.type === 'tenant' && session.subdomain !== subdomain) {
+        console.error(`[requireTenantAccess] Access denied: ${session.email} tried to access ${subdomain} but owns ${session.subdomain}`);
         throw new Error('Forbidden');
     }
 

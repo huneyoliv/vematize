@@ -20,8 +20,9 @@ export const ClientRegisterSchema = z.object({
     password: PasswordSchema, 
 });
 
+// Schema de login unificado - aceita email OU username
 export const ClientLoginSchema = z.object({
-  email: z.string().email({ message: "Por favor, insira um e-mail válido." }),
+  email: z.string().min(1, { message: "Email ou usuário é obrigatório." }),
   password: z.string().min(1, { message: "A senha é obrigatória." }), 
 });
 
