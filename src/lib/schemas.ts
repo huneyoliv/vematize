@@ -164,6 +164,10 @@ export const BotConfigSchema = z.object({
   flows: z.array(BotFlowSchema),
   inactiveSubscriptionMessage: z.string().optional(),
   deliveryMessage: z.string().optional(),
+  discord: z.object({
+    botToken: z.string().optional(),
+    clientId: z.string().optional(),
+  }).optional(),
 });
 
 export const KrovSettingsSchema = z.object({

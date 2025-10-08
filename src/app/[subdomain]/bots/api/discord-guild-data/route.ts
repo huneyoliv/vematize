@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await auth();
-        if (!session?.user?.email) {
+        const session = await getCurrentSession();
+        if (!session?.email) {
             return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
         }
 
@@ -91,4 +91,5 @@ export async function POST(request: NextRequest) {
         }, { status: 500 });
     }
 }
+
 

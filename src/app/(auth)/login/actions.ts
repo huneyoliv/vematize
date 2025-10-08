@@ -201,10 +201,16 @@ export async function loginClient(
     const db = client.db('vematize');
     const tenantsCollection = db.collection<TenantDocument>('tenants');
 
-    const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
+    // Busca por username (novo sistema)
+    const tenant = await tenantsCollection.findOne({ 
+      $or: [
+        { username: validatedData.username },
+        { subdomain: validatedData.username }
+      ]
+    });
 
     if (!tenant || !tenant.passwordHash) {
-      return { success: false, message: 'E-mail ou senha inválidos.' };
+      return { success: false, message: 'Username ou senha inválidos.' };
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -213,7 +219,7 @@ export async function loginClient(
     );
 
     if (!isPasswordValid) {
-      return { success: false, message: 'E-mail ou senha inválidos.' };
+      return { success: false, message: 'Username ou senha inválidos.' };
     }
 
     // Cria sessão segura server-side

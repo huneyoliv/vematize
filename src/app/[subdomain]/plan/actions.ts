@@ -16,6 +16,7 @@ export type CurrentPlanInfo = {
   features: string[];
   expiresAt: string | null;
   expiresAtLabel: string;
+  trialEndsAt: string | null;
   planId: string | null;
 };
 
@@ -209,7 +210,10 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
           status: 'none',
           statusLabel: 'Não autenticado',
           planName: 'N/A',
+          price: 0,
+          features: [],
           expiresAt: null,
+          expiresAtLabel: 'N/A',
           trialEndsAt: null,
           planId: null,
         };
@@ -240,6 +244,7 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
         ],
         expiresAt: null,
         expiresAtLabel: 'Data de expiração: N/A',
+        trialEndsAt: null,
         planId: null,
       };
     }
@@ -298,6 +303,7 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
       ],
       expiresAt,
       expiresAtLabel,
+      trialEndsAt: tenant.trialEndsAt || null,
       planId,
     };
   } catch (error) {
@@ -310,6 +316,7 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
       features: [],
       expiresAt: null,
       expiresAtLabel: 'Não foi possível carregar os dados do plano.',
+      trialEndsAt: null,
       planId: null,
     };
   }
