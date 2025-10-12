@@ -26,12 +26,11 @@ interface ProductFormDialogProps {
   onOpenChange: (open: boolean) => void;
   product: Product | null;
   onSuccess: () => void;
-  subdomain: string;
 }
 
 const formSchema = ProductSchema;
 
-export function ProductFormDialog({ open, onOpenChange, product, onSuccess, subdomain }: ProductFormDialogProps) {
+export function ProductFormDialog({ open, onOpenChange, product, onSuccess }: ProductFormDialogProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [usedCodes, setUsedCodes] = useState<string[]>([]);
@@ -67,11 +66,11 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess, subd
 
   useEffect(() => {
     async function fetchGateways() {
-        const gateways = await getPaymentIntegrations(subdomain);
+        const gateways = await getPaymentIntegrations();
         setAvailableGateways(gateways);
     }
     fetchGateways();
-  }, [subdomain]);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -135,7 +134,7 @@ export function ProductFormDialog({ open, onOpenChange, product, onSuccess, subd
         offerExpiresAt: values.offerExpiresAt ? new Date(values.offerExpiresAt).toISOString() : null,
       };
 
-      const result = await saveProduct(subdomain, dataToSave);
+      const result = await saveProduct(dataToSave);
       if (result.success) {
         toast({ title: 'Sucesso!', description: result.message });
         onSuccess();

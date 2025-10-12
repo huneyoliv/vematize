@@ -27,7 +27,6 @@ import { Badge } from '@/components/ui/badge';
 
 interface ProductsManagerProps {
   initialProducts: Product[];
-  subdomain: string;
 }
 
 function formatCurrency(value: number) {
@@ -96,7 +95,7 @@ const OfferBadge = ({ product }: { product: Product }) => {
     );
 };
 
-export function ProductsManager({ initialProducts, subdomain }: ProductsManagerProps) {
+export function ProductsManager({ initialProducts }: ProductsManagerProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState(initialProducts);
@@ -116,7 +115,7 @@ export function ProductsManager({ initialProducts, subdomain }: ProductsManagerP
 
   const handleDeleteProduct = async (productId: string) => {
     setIsDeleting(productId);
-    const result = await deleteProduct(subdomain, productId);
+    const result = await deleteProduct(productId);
     if (result.success) {
       toast({ title: 'Sucesso!', description: result.message });
       setProducts(products.filter(p => p.id !== productId));
@@ -133,7 +132,6 @@ export function ProductsManager({ initialProducts, subdomain }: ProductsManagerP
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         product={selectedProduct}
-        subdomain={subdomain}
         onSuccess={() => {
             router.refresh();
         }}

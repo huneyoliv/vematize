@@ -22,10 +22,9 @@ interface QrCodeDialogProps {
     qrCodeBase64: string;
     subscriptionId: string;
   } | null;
-  subdomain: string;
 }
 
-export function QrCodeDialog({ isOpen, onClose, qrCodeData, subdomain }: QrCodeDialogProps) {
+export function QrCodeDialog({ isOpen, onClose, qrCodeData }: QrCodeDialogProps) {
   const { toast } = useToast();
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
 
