@@ -7,6 +7,7 @@ import type { Platform } from './platform-config';
 import { z } from 'zod';
 import { BotConfigSchema } from '@/lib/schemas';
 import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
+import { ObjectId } from 'mongodb';
 
 export type BotConnections = {
     [key in Platform]?: { [key: string]: string };
@@ -16,21 +17,8 @@ export type ConnectionDetails = { [key: string]: string } | undefined;
 
 export async function getBotConnections(): Promise<BotConnections> {
   try {
-    // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-    await requireTenantAccess(subdomain);
-
-    const client = await clientPromise;
-    const db = client.db('vematize');
-    
-    const tenantsCollection = db.collection('tenants');
-    // Tenant já obtido da sessão
-
-    if (!tenant) {
-      return {};
-    }
-
+    const tenant = await getTenantFromSession();
     return tenant.connections || {};
-
   } catch (error) {
     console.error('Database Error fetching bot connections:', error);
     return {};
@@ -39,20 +27,8 @@ export async function getBotConnections(): Promise<BotConnections> {
 
 export async function getBotConnectionDetails(platform: Platform): Promise<ConnectionDetails> {
   try {
-    // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-    await requireTenantAccess(subdomain);
-
-    const client = await clientPromise;
-    const db = client.db('vematize');
-    const tenantsCollection = db.collection('tenants');
-    const tenant = await tenantsCollection.findOne(
-      { subdomain },
-      { projection: { [`connections.${platform}`]: 1 } }
-    );
-    if (!tenant || !tenant.connections) {
-      return undefined;
-    }
-    return tenant.connections[platform];
+    const tenant = await getTenantFromSession();
+    return tenant.connections?.[platform];
   } catch (error) {
     console.error(`Database Error fetching details for ${platform}:`, error);
     return undefined;
@@ -61,15 +37,13 @@ export async function getBotConnectionDetails(platform: Platform): Promise<Conne
 
 
 export async function saveBotConnection(
-    subdomain: string, 
     platform: Platform, 
     data: { [key: string]: string }
 ): Promise<{success: boolean; message: string}> {
     try {
-        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-        await requireTenantAccess(subdomain);
+        const tenant = await getTenantFromSession();
 
-        if (!subdomain || !platform || !data) {
+        if (!platform || !data) {
             return { success: false, message: 'Dados inválidos fornecidos.' };
         }
 
@@ -85,7 +59,7 @@ export async function saveBotConnection(
         }
 
         const updateResult = await tenantsCollection.updateOne(
-            { subdomain },
+            { _id: new ObjectId(tenant._id) },
             { $set: { [`connections.${platform}`]: sanitizedData } }
         );
 
@@ -130,9 +104,8 @@ export async function saveBotConnection(
             successMessage = 'Bot do Discord conectado com sucesso!';
         }
 
-
         revalidatePath('/bots');
-        revalidatePath(`/${subdomain}/bots/${platform}`);
+        revalidatePath(`/bots/${platform}`);
         return { success: true, message: successMessage };
 
     } catch (error) {
@@ -143,28 +116,18 @@ export async function saveBotConnection(
 
 export async function getBotConfig(): Promise<z.infer<typeof BotConfigSchema> | null> {
   try {
-    // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-    await requireTenantAccess(subdomain);
+    const tenant = await getTenantFromSession();
+    const parseResult = BotConfigSchema.safeParse(tenant.botConfig);
+    
+    if (parseResult.success) {
+        return parseResult.data;
+    }
 
-    const client = await clientPromise;
-        const db = client.db('vematize');
-        const tenantsCollection = db.collection<Tenant>('tenants');
-        const tenant = await tenantsCollection.findOne(
-            { subdomain },
-            { projection: { botConfig: 1 } }
-        );
+    if(tenant.botConfig) {
+        console.warn(`Bot config for tenant has outdated structure and will be reset.`);
+    }
 
-        const parseResult = BotConfigSchema.safeParse(tenant?.botConfig);
-        
-        if (parseResult.success) {
-            return parseResult.data;
-        }
-
-        if(tenant?.botConfig) {
-            console.warn(`Bot config for subdomain "${subdomain}" has outdated structure and will be reset.`);
-        }
-
-        return null;
+    return null;
         
     } catch (error) {
         console.error('Database Error fetching bot config:', error);
@@ -173,13 +136,10 @@ export async function getBotConfig(): Promise<z.infer<typeof BotConfigSchema> | 
 }
 
 export async function saveBotConfig(
-    subdomain: string,
     data: z.infer<typeof BotConfigSchema>
 ): Promise<{success: boolean; message: string}> {
     try {
-        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-        await requireTenantAccess(subdomain);
-
+        const tenant = await getTenantFromSession();
         const validatedData = BotConfigSchema.parse(data);
 
         const client = await clientPromise;
@@ -187,7 +147,7 @@ export async function saveBotConfig(
         const tenantsCollection = db.collection('tenants');
 
         const updateResult = await tenantsCollection.updateOne(
-            { subdomain },
+            { _id: new ObjectId(tenant._id) },
             { $set: { botConfig: validatedData } }
         );
 
@@ -195,8 +155,8 @@ export async function saveBotConfig(
             return { success: false, message: 'Cliente não encontrado.' };
         }
 
-        revalidatePath(`/${subdomain}/bots/telegram`);
-        revalidatePath(`/${subdomain}/bots/discord`);
+        revalidatePath('/bots/telegram');
+        revalidatePath('/bots/discord');
         return { success: true, message: 'Fluxo do bot salvo com sucesso!' };
 
     } catch (error) {
@@ -210,15 +170,8 @@ export async function saveBotConfig(
 
 export async function getDiscordSettings() {
     try {
-        const client = await clientPromise;
-        const db = client.db('vematize');
-        const tenantsCollection = db.collection<Tenant>('tenants');
-        const tenant = await tenantsCollection.findOne(
-            { subdomain },
-            { projection: { discordSettings: 1 } }
-        );
-
-        return tenant?.discordSettings || null;
+        const tenant = await getTenantFromSession();
+        return tenant.discordSettings || null;
     } catch (error) {
         console.error('Database Error fetching Discord settings:', error);
         return null;
@@ -226,10 +179,10 @@ export async function getDiscordSettings() {
 }
 
 export async function saveDiscordSettings(
-    subdomain: string,
     data: any
 ): Promise<{success: boolean; message: string}> {
     try {
+        const tenant = await getTenantFromSession();
         const { DiscordSettingsSchema } = await import('@/lib/schemas');
         const validatedData = DiscordSettingsSchema.parse(data);
 
@@ -238,7 +191,7 @@ export async function saveDiscordSettings(
         const tenantsCollection = db.collection('tenants');
 
         const updateResult = await tenantsCollection.updateOne(
-            { subdomain },
+            { _id: new ObjectId(tenant._id) },
             { $set: { discordSettings: validatedData } }
         );
 
@@ -246,7 +199,7 @@ export async function saveDiscordSettings(
             return { success: false, message: 'Cliente não encontrado.' };
         }
 
-        revalidatePath(`/${subdomain}/bots/discord`);
+        revalidatePath('/bots/discord');
         return { success: true, message: 'Configurações do Discord salvas com sucesso!' };
 
     } catch (error) {
