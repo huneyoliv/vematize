@@ -13,15 +13,15 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
-  // Redireciona para a página apropriada baseado no tipo de usuário
+  // Admin vê as configurações do Krov (globais)
   if (session.type === 'admin') {
-    // Admin vê as configurações do Krov
     const { default: AdminSettings } = await import('@/app/krov/settings/page');
     return <AdminSettings />;
   }
 
-  // Tenant vê as configurações do próprio tenant
-  const { default: TenantSettings } = await import('@/app/(tenant)/settings/page');
-  return <TenantSettings />;
+  // Tenant vê as configurações do próprio tenant (Mercado Pago)
+  // Importa dinamicamente para evitar conflito de rotas
+  const { TenantSettingsContent } = await import('@/components/settings/tenant-settings-content');
+  return <TenantSettingsContent />;
 }
 
