@@ -45,7 +45,49 @@ export async function unifiedLogin(
     const client = await clientPromise;
     const db = client.db('vematize');
 
-    // 1️⃣ TENTATIVA 1: LOGIN COMO ADMIN
+    // 1️⃣ TENTATIVA 1: LOGIN COMO TENANT (Prioridade para clientes!)
+    const tenantsCollection = db.collection<TenantDocument>('tenants');
+    const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
+
+    if (tenant && tenant.passwordHash) {
+      const isPasswordValid = await bcrypt.compare(validatedData.password, tenant.passwordHash);
+
+      if (isPasswordValid) {
+        // ✅ LOGIN TENANT BEM-SUCEDIDO
+        const { createSession } = await import('@/lib/auth');
+        
+        // Usa username do banco (campo principal) ao invés de subdomain
+        const username = (tenant as any).username || tenant.subdomain;
+        
+        const token = await createSession({
+          userId: tenant._id.toString(),
+          email: tenant.ownerEmail,
+          name: tenant.ownerName || 'Cliente',
+          subdomain: username, // Usa username do banco
+          type: 'tenant',
+        });
+
+        const { cookies } = await import('next/headers');
+        cookies().set('session_token', token, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'strict',
+          maxAge: 60 * 60 * 24 * 7,
+          path: '/',
+        });
+        
+        return {
+          success: true,
+          message: 'Login bem-sucedido!',
+          name: tenant.ownerName || 'Cliente',
+          email: tenant.ownerEmail,
+          userType: 'tenant',
+          redirectTo: '/dashboard', // Rota fixa, tenant identificado pela sessão
+        };
+      }
+    }
+
+    // 2️⃣ TENTATIVA 2: LOGIN COMO ADMIN
     const adminCollection = db.collection('admins');
     
     // Verifica setup inicial (admin/admin)
@@ -118,48 +160,6 @@ export async function unifiedLogin(
           email: admin.email || admin.username,
           userType: 'admin',
           redirectTo: '/krov/dashboard',
-        };
-      }
-    }
-
-    // 2️⃣ TENTATIVA 2: LOGIN COMO TENANT
-    const tenantsCollection = db.collection<TenantDocument>('tenants');
-    const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
-
-    if (tenant && tenant.passwordHash) {
-      const isPasswordValid = await bcrypt.compare(validatedData.password, tenant.passwordHash);
-
-      if (isPasswordValid) {
-        // ✅ LOGIN TENANT BEM-SUCEDIDO
-        const { createSession } = await import('@/lib/auth');
-        
-        // Usa username do banco (campo principal) ao invés de subdomain
-        const username = (tenant as any).username || tenant.subdomain;
-        
-        const token = await createSession({
-          userId: tenant._id.toString(),
-          email: tenant.ownerEmail,
-          name: tenant.ownerName || 'Cliente',
-          subdomain: username, // Usa username do banco
-          type: 'tenant',
-        });
-
-        const { cookies } = await import('next/headers');
-        cookies().set('session_token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: 'strict',
-          maxAge: 60 * 60 * 24 * 7,
-          path: '/',
-        });
-        
-        return {
-          success: true,
-          message: 'Login bem-sucedido!',
-          name: tenant.ownerName || 'Cliente',
-          email: tenant.ownerEmail,
-          userType: 'tenant',
-          redirectTo: '/dashboard', // Rota fixa, tenant identificado pela sessão
         };
       }
     }
