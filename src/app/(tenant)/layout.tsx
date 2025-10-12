@@ -11,24 +11,17 @@ export default async function TenantLayout({
 }: {
   children: React.ReactNode;
 }) {
-  console.log('[TenantLayout] Starting...');
-  
   const session = await getCurrentSession();
-  
-  console.log('[TenantLayout] Session:', session ? { type: session.type, userId: session.userId } : 'NULL');
 
   if (!session) {
-    console.log('[TenantLayout] No session, redirecting to /login');
     redirect('/login');
   }
 
-  // Admin é redirecionado para /krov/dashboard
+  // Este layout é apenas para TENANTS
+  // Se for admin acessando uma rota tenant (como /settings), redireciona para /dashboard
   if (session.type === 'admin') {
-    console.log('[TenantLayout] Admin detected, redirecting to /krov/dashboard');
-    redirect('/krov/dashboard');
+    redirect('/dashboard');
   }
-
-  console.log('[TenantLayout] Rendering tenant layout');
   
   // Tenant usa o layout com sidebar
   return (

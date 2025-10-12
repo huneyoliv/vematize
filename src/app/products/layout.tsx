@@ -14,7 +14,7 @@ export default async function ProductsLayout({
   }
 
   if (session.type === 'admin') {
-    redirect('/krov/dashboard');
+    redirect('/dashboard');
   }
 
   return (

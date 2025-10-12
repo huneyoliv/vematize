@@ -14,7 +14,7 @@ export default async function BotsLayout({
   }
 
   if (session.type === 'admin') {
-    redirect('/krov/dashboard');
+    redirect('/dashboard');
   }
 
   return (
