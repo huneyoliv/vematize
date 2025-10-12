@@ -48,10 +48,10 @@ interface MercadoPagoConfigDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   settings: MercadoPagoSettings;
-  subdomain: string;
+  username: string; // Usado apenas para gerar a URL do webhook
 }
 
-function MercadoPagoConfigDialog({ open, onOpenChange, settings, subdomain }: MercadoPagoConfigDialogProps) {
+function MercadoPagoConfigDialog({ open, onOpenChange, settings, username }: MercadoPagoConfigDialogProps) {
     const { toast } = useToast();
     const [baseUrl, setBaseUrl] = useState('');
 
@@ -61,7 +61,7 @@ function MercadoPagoConfigDialog({ open, onOpenChange, settings, subdomain }: Me
     });
 
     const mode = form.watch('mode');
-    const webhookUrl = `${baseUrl}/${subdomain}/api/webhook/${mode === 'sandbox' ? 'sand' : ''}mercadopago`;
+    const webhookUrl = `${baseUrl}/${username}/api/webhook/${mode === 'sandbox' ? 'sand' : ''}mercadopago`;
 
     useEffect(() => {
         if (open) {
@@ -71,7 +71,7 @@ function MercadoPagoConfigDialog({ open, onOpenChange, settings, subdomain }: Me
     }, [open, settings, form]);
     
     async function onSubmit(data: MercadoPagoSettings) {
-        const result = await updateMercadoPagoSettings(subdomain, data);
+        const result = await updateMercadoPagoSettings(data);
         toast({
             title: result.success ? 'Sucesso!' : 'Erro!',
             description: result.message,
@@ -207,7 +207,7 @@ function MercadoPagoConfigDialog({ open, onOpenChange, settings, subdomain }: Me
 }
 
 // --- Componente principal da página ---
-export default function ClientSettingsPage({ params }: { params: { subdomain: string } }) {
+export default function ClientSettingsPage() {
     const [user, setUser] = useState({ name: '', email: '' });
     const [settings, setSettings] = useState<MercadoPagoSettings | null>(null);
     const [isDialogOpen, setDialogOpen] = useState(false);
@@ -226,12 +226,12 @@ export default function ClientSettingsPage({ params }: { params: { subdomain: st
 
         async function fetchSettings() {
             setIsLoading(true);
-            const fetchedSettings = await getMercadoPagoSettings(params.subdomain);
+            const fetchedSettings = await getMercadoPagoSettings();
             setSettings(fetchedSettings);
             setIsLoading(false);
         }
         fetchSettings();
-    }, [params.subdomain]);
+    }, []);
 
     const getMpStatus = () => {
         if (!settings) return { text: 'Não configurado', color: 'destructive' as const };
@@ -311,11 +311,11 @@ export default function ClientSettingsPage({ params }: { params: { subdomain: st
                             setDialogOpen(isOpen);
                             // Refetch settings when dialog closes to update status badge
                             if (!isOpen) {
-                                getMercadoPagoSettings(params.subdomain).then(setSettings);
+                                getMercadoPagoSettings().then(setSettings);
                             }
                         }}
                         settings={settings}
-                        subdomain={params.subdomain}
+                        username={user.email.split('@')[0] || 'tenant'}
                     />
                 )}
 

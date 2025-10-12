@@ -1,17 +1,17 @@
 import { getBotConnections } from "./actions";
 import { BotConfigCards } from "./components/bot-config-cards";
-import { requireTenantAccess } from '@/lib/auth';
+import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 import { redirect } from 'next/navigation';
 
-export default async function MyBotsPage({ params }: { params: { subdomain: string } }) {
-    // Protege a rota - requer autenticação e acesso ao subdomain
+export default async function MyBotsPage() {
+    // Protege a rota - requer autenticação (tenant identificado pela sessão)
     try {
-        await requireTenantAccess(params.subdomain);
+        await getTenantFromSession();
     } catch (error) {
         redirect('/login');
     }
 
-    const connections = await getBotConnections(params.subdomain);
+    const connections = await getBotConnections();
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">

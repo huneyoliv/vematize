@@ -32,7 +32,7 @@ function SubscriptionInactiveAlert() {
     );
 }
 
-export default function ClientPlanPage({ params }: { params: { subdomain: string } }) {
+export default function ClientPlanPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { toast } = useToast();
@@ -58,25 +58,25 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
                 description: 'Sua assinatura foi ativada. Pode levar alguns minutos para o sistema atualizar.',
                 variant: 'default',
             });
-            router.replace(`/${params.subdomain}/plan`);
+            router.replace('/plan');
         } else if (status === 'failure') {
             toast({
                 title: 'Falha no Pagamento',
                 description: 'Ocorreu um problema ao processar seu pagamento. Por favor, tente novamente.',
                 variant: 'destructive',
             });
-            router.replace(`/${params.subdomain}/plan`);
+            router.replace('/plan');
         }
-    }, [searchParams, toast, router, params.subdomain]);
+    }, [searchParams, toast, router]);
 
     useEffect(() => {
         async function fetchData() {
             setIsLoading(true);
             try {
                 const [plan, plans, pendingSub] = await Promise.all([
-                    getCurrentPlanInfo(params.subdomain),
+                    getCurrentPlanInfo(),
                     getAvailablePlans(),
-                    getPendingSubscription(params.subdomain)
+                    getPendingSubscription()
                 ]);
 
                 setPlanInfo(plan);
@@ -96,7 +96,7 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
                         });
                         window.location.reload();
                     } else if (pendingSub.paymentGateway !== 'card') { // If it's PIX, we can show the QR code again
-                         const paymentResult = await createSubscriptionPayment(pendingSub.planId.toString(), params.subdomain, 'pix');
+                         const paymentResult = await createSubscriptionPayment(pendingSub.planId.toString(), 'pix');
                          if(paymentResult.qrCode && paymentResult.qrCodeBase64 && paymentResult.subscriptionId) {
                             setQrCodeData({ qrCode: paymentResult.qrCode, qrCodeBase64: paymentResult.qrCodeBase64, subscriptionId: paymentResult.subscriptionId });
                             setIsQrCodeDialogOpen(true);
@@ -115,7 +115,7 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
         }
 
         fetchData();
-    }, [params.subdomain, toast]);
+    }, [toast]);
 
     useEffect(() => {
         if (pollingSubscriptionId) {
@@ -157,7 +157,7 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
         setIsPaymentDialogOpen(false);
 
         try {
-            const result = await createSubscriptionPayment(selectedPlan.id, params.subdomain, paymentMethod, couponCode);
+            const result = await createSubscriptionPayment(selectedPlan.id, paymentMethod, couponCode);
 
             if (result.error) {
                 toast({ variant: 'destructive', title: 'Erro ao criar pagamento', description: result.error });
@@ -340,7 +340,6 @@ export default function ClientPlanPage({ params }: { params: { subdomain: string
                     isOpen={isQrCodeDialogOpen}
                     onClose={() => setIsQrCodeDialogOpen(false)}
                     qrCodeData={qrCodeData}
-                    subdomain={params.subdomain as string}
                 />
             )}
         </>

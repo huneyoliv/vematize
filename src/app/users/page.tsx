@@ -7,18 +7,18 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { MoreHorizontal, PlusCircle, Search } from "lucide-react";
 import { getBotUsers } from './actions';
-import { requireTenantAccess } from '@/lib/auth';
+import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 import { redirect } from 'next/navigation';
 
-export default async function BotUsersPage({ params }: { params: { subdomain: string } }) {
-    // Protege a rota - requer autenticação e acesso ao subdomain
+export default async function BotUsersPage() {
+    // Protege a rota - requer autenticação (tenant identificado pela sessão)
     try {
-        await requireTenantAccess(params.subdomain);
+        await getTenantFromSession();
     } catch (error) {
         redirect('/login');
     }
 
-    const users = await getBotUsers(params.subdomain);
+    const users = await getBotUsers();
 
     return (
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
