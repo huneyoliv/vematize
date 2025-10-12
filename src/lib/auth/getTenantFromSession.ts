@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import { getSession } from '@/lib/auth';
 import clientPromise from '@/lib/mongodb';
 import { Tenant } from '@/lib/types';
+import { ObjectId } from 'mongodb';
 
 /**
  * Obtém o tenant do usuário logado a partir da sessão
@@ -30,8 +31,9 @@ export async function getTenantFromSession(): Promise<Tenant> {
   const client = await clientPromise;
   const db = client.db('vematize');
   
+  // Converte string para ObjectId
   const tenant = await db.collection<Tenant>('tenants').findOne({
-    _id: session.userId as any
+    _id: new ObjectId(session.userId)
   });
 
   if (!tenant) {
