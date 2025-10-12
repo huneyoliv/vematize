@@ -10,19 +10,7 @@ type MercadoPagoSettings = z.infer<typeof MercadoPagoSettingsSchema>;
 
 export async function getMercadoPagoSettings(): Promise<MercadoPagoSettings | null> {
     try {
-        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-        await requireTenantAccess(subdomain);
-
-        const client = await clientPromise;
-        const db = client.db('vematize');
-        const tenantsCollection = db.collection('tenants');
-
-        // Tenant já obtido da sessão
-
-        if (!tenant) {
-            console.error('Tenant not found for subdomain:', subdomain);
-            return null;
-        }
+        const tenant = await getTenantFromSession();
 
         // Return the nested Mercado Pago settings object, or a default structure if not present
         return tenant.paymentIntegrations?.mercadopago || {
@@ -40,12 +28,10 @@ export async function getMercadoPagoSettings(): Promise<MercadoPagoSettings | nu
 
 
 export async function updateMercadoPagoSettings(
-    subdomain: string,
     data: MercadoPagoSettings
 ): Promise<{ success: boolean; message: string }> {
     try {
-        // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-        await requireTenantAccess(subdomain);
+        const tenant = await getTenantFromSession();
 
         const validatedData = MercadoPagoSettingsSchema.parse(data);
 
