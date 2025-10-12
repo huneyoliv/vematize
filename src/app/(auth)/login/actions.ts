@@ -160,7 +160,6 @@ export async function unifiedLogin(
           email: tenant.ownerEmail,
           userType: 'tenant',
           redirectTo: '/dashboard', // Rota fixa, tenant identificado pela sessão
-          subdomain: username,
         };
       }
     }
