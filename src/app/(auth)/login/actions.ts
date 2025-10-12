@@ -46,13 +46,19 @@ export async function unifiedLogin(
     const db = client.db('vematize');
 
     // 1️⃣ TENTATIVA 1: LOGIN COMO TENANT (Prioridade para clientes!)
+    console.log('[unifiedLogin] Tentando login como TENANT para:', validatedData.email);
     const tenantsCollection = db.collection<TenantDocument>('tenants');
     const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
+    
+    console.log('[unifiedLogin] Tenant encontrado?', tenant ? 'SIM' : 'NÃO');
+    console.log('[unifiedLogin] Tenant tem passwordHash?', tenant?.passwordHash ? 'SIM' : 'NÃO');
 
     if (tenant && tenant.passwordHash) {
       const isPasswordValid = await bcrypt.compare(validatedData.password, tenant.passwordHash);
+      console.log('[unifiedLogin] Senha tenant válida?', isPasswordValid ? 'SIM' : 'NÃO');
 
       if (isPasswordValid) {
+        console.log('[unifiedLogin] ✅ LOGIN TENANT BEM-SUCEDIDO! Redirecionando para /dashboard');
         // ✅ LOGIN TENANT BEM-SUCEDIDO
         const { createSession } = await import('@/lib/auth');
         
@@ -88,11 +94,13 @@ export async function unifiedLogin(
     }
 
     // 2️⃣ TENTATIVA 2: LOGIN COMO ADMIN
+    console.log('[unifiedLogin] Tenant falhou, tentando login como ADMIN para:', validatedData.email);
     const adminCollection = db.collection('admins');
     
     // Verifica setup inicial (admin/admin)
     const adminCount = await adminCollection.countDocuments();
     if (adminCount === 0 && validatedData.email === 'admin' && validatedData.password === 'admin') {
+      console.log('[unifiedLogin] Setup inicial detectado');
       // Setup inicial - criar admin temporário
       const { createSession } = await import('@/lib/auth');
       const tempAdminId = new ObjectId();
@@ -130,11 +138,15 @@ export async function unifiedLogin(
         { email: validatedData.email }
       ]
     });
+    
+    console.log('[unifiedLogin] Admin encontrado?', admin ? 'SIM' : 'NÃO');
 
     if (admin) {
       const isPasswordValid = await bcrypt.compare(validatedData.password, admin.password);
+      console.log('[unifiedLogin] Senha admin válida?', isPasswordValid ? 'SIM' : 'NÃO');
       
       if (isPasswordValid) {
+        console.log('[unifiedLogin] ✅ LOGIN ADMIN BEM-SUCEDIDO! Redirecionando para /krov/dashboard');
         // ✅ LOGIN ADMIN BEM-SUCEDIDO
         const { createSession } = await import('@/lib/auth');
         const token = await createSession({
