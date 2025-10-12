@@ -18,12 +18,12 @@ import {
 import { VematizeLogo } from '../icons/logo';
 
 const sidebarNavItems = [
-  { title: 'Dashboard', href: '/krov/dashboard', icon: LayoutDashboard },
-  { title: 'Clientes', href: '/krov/clients', icon: Building },
-  { title: 'Cupons', href: '/krov/coupons', icon: Ticket },
-  { title: 'Relatórios', href: '/krov/reports', icon: BarChart },
-  { title: 'Administradores', href: '/krov/admins', icon: 'shield', adminOnly: true },
-  { title: 'Configurações', href: '/krov/settings', icon: Settings },
+  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { title: 'Clientes', href: '/clients', icon: Building },
+  { title: 'Cupons', href: '/coupons', icon: Ticket },
+  { title: 'Relatórios', href: '/reports', icon: BarChart },
+  { title: 'Administradores', href: '/admins', icon: 'shield', adminOnly: true },
+  { title: 'Configurações', href: '/settings', icon: Settings },
 ];
 
 const AdminIcon = () => (

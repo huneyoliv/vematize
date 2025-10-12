@@ -6,17 +6,26 @@ import {
     DollarSign,
     CreditCard,
 } from 'lucide-react';
-import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
+import { getCurrentSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 
 export default async function DashboardPage() {
-    // Protege a rota - requer autenticação (tenant identificado pela sessão)
-    try {
-        await getTenantFromSession(); // Valida se há sessão de tenant
-    } catch (error) {
+    // Protege a rota - requer autenticação
+    const session = await getCurrentSession();
+    
+    if (!session) {
         redirect('/login');
     }
 
+    // Se for admin, redireciona para o dashboard admin específico
+    // (por enquanto, vamos manter compatibilidade)
+    if (session.type === 'admin') {
+        // Importa dinamicamente o dashboard do admin
+        const { default: AdminDashboard } = await import('@/app/krov/dashboard/page');
+        return <AdminDashboard />;
+    }
+
+    // Dashboard do tenant
     const stats = await getDashboardStats();
 
     return (

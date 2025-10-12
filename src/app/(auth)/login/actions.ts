@@ -127,7 +127,7 @@ export async function unifiedLogin(
         name: 'Administrador',
         email: 'admin',
         userType: 'admin',
-        redirectTo: '/krov/dashboard',
+        redirectTo: '/dashboard', // Rota fixa também para admin!
       };
     }
 
@@ -171,7 +171,7 @@ export async function unifiedLogin(
           name: admin.username,
           email: admin.email || admin.username,
           userType: 'admin',
-          redirectTo: '/krov/dashboard',
+          redirectTo: '/dashboard', // Rota fixa também para admin!
         };
       }
     }

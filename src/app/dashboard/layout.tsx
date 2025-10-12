@@ -1,6 +1,7 @@
 import { getCurrentSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import TenantSidebar from '@/components/layout/tenant-sidebar';
+import Sidebar from '@/components/layout/sidebar';
 
 export default async function DashboardLayout({
   children,
@@ -13,15 +14,12 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Admin é redirecionado para /krov/dashboard
-  if (session.type === 'admin') {
-    redirect('/krov/dashboard');
-  }
+  // Renderiza sidebar apropriada baseado no tipo de usuário
+  const SidebarComponent = session.type === 'admin' ? Sidebar : TenantSidebar;
   
-  // Tenant usa o dashboard fixo (sem subdomain na URL)
   return (
     <div className="flex min-h-screen">
-      <TenantSidebar />
+      <SidebarComponent />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
