@@ -1,32 +1,31 @@
-import { AdaptiveDashboardLayout } from '@/components/layout/adaptive-dashboard-layout';
-import { getCurrentSession } from '@/lib/auth';
+import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
+import { Sidebar } from '@/components/layout/sidebar';
+import { ClientSidebar } from '@/components/layout/client-sidebar';
 
-/**
- * Layout Unificado de Dashboard
- * 
- * Redireciona para o dashboard apropriado baseado no tipo de usuário:
- * - Admin → /krov/dashboard
- * - Tenant → /{subdomain}/dashboard
- */
-export default async function UnifiedDashboardLayout({
+export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const session = await getCurrentSession();
+  const session = await getSession();
 
   if (!session) {
     redirect('/login');
   }
 
-  // Redireciona para o dashboard específico
+  // Admin é redirecionado para /krov/dashboard
   if (session.type === 'admin') {
     redirect('/krov/dashboard');
-  } else if (session.type === 'tenant' && session.subdomain) {
-    redirect(`/${session.subdomain}/dashboard`);
   }
 
-  // Fallback (não deveria chegar aqui)
-  return <>{children}</>;
+  // Tenant usa o dashboard fixo (sem subdomain na URL)
+  return (
+    <div className="flex min-h-screen">
+      <ClientSidebar />
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
+  );
 }
