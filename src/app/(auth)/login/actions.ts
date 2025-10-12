@@ -159,7 +159,7 @@ export async function unifiedLogin(
           name: tenant.ownerName || 'Cliente',
           email: tenant.ownerEmail,
           userType: 'tenant',
-          redirectTo: `/${username}/dashboard`,
+          redirectTo: '/dashboard', // Rota fixa, tenant identificado pela sessão
           subdomain: username,
         };
       }
