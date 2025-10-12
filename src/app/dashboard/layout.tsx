@@ -1,4 +1,4 @@
-import { getSession } from '@/lib/auth';
+import { getCurrentSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import TenantSidebar from '@/components/layout/tenant-sidebar';
 
@@ -9,7 +9,7 @@ export default async function DashboardLayout({
 }) {
   console.log('[DashboardLayout] Starting...');
   
-  const session = await getSession();
+  const session = await getCurrentSession();
   
   console.log('[DashboardLayout] Session:', session ? { type: session.type, userId: session.userId } : 'NULL');
 
