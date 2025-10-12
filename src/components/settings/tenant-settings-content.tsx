@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
 import { MercadoPagoSettingsSchema } from '@/lib/schemas';
-import { getMercadoPagoSettings, updateMercadoPagoSettings } from '@/app/(tenant)/settings/actions';
+import { getMercadoPagoSettings, updateMercadoPagoSettings } from '@/app/settings/actions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
