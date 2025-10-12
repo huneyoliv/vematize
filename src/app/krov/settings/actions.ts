@@ -268,7 +268,18 @@ export async function getActiveSaasPlans(): Promise<SaasPlan[]> {
 
 export async function saveSaasPlan(formData: FormData): Promise<ActionResult> {
   try {
-    const validatedData = SaasPlanSchema.parse(Object.fromEntries(formData));
+    // Parse FormData corretamente (arrays precisam de getAll)
+    const rawData = Object.fromEntries(formData);
+    const features = formData.getAll('features') as string[]; // Pega array de features
+    const isActive = formData.get('isActive') === 'true'; // Converte string para boolean
+    
+    const validatedData = SaasPlanSchema.parse({
+      ...rawData,
+      features, // Sobrescreve com array correto
+      isActive, // Sobrescreve com boolean correto
+      price: rawData.price ? Number(rawData.price) : undefined,
+      durationDays: rawData.durationDays ? Number(rawData.durationDays) : undefined,
+    });
     const { id, ...planData } = validatedData;
 
     const client = await clientPromise;

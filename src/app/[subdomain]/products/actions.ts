@@ -17,7 +17,7 @@ export async function getProducts(subdomain: string): Promise<Product[]> {
         const client = await clientPromise;
         const db = client.db('vematize');
         
-        const tenant = await db.collection<Tenant>('tenants').findOne({ subdomain }, { projection: { _id: 1 } });
+        const tenant = await db.collection<Tenant>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] }, { projection: { _id: 1 } });
         if (!tenant) {
             console.warn(`Tenant not found for subdomain: ${subdomain}`);
             return [];
@@ -55,7 +55,7 @@ export async function getProductById(subdomain: string, productId: string): Prom
         const client = await clientPromise;
         const db = client.db('vematize');
 
-        const tenant = await db.collection<Tenant>('tenants').findOne({ subdomain }, { projection: { _id: 1 } });
+        const tenant = await db.collection<Tenant>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] }, { projection: { _id: 1 } });
         if (!tenant) return null;
         
         const product = await db.collection<ProductDocument>('products').findOne({ 
@@ -98,7 +98,7 @@ export async function saveProduct(
         const client = await clientPromise;
         const db = client.db('vematize');
 
-        const tenant = await db.collection<Tenant>('tenants').findOne({ subdomain });
+        const tenant = await db.collection<Tenant>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
         if (!tenant) {
             return { success: false, message: "Tenant não encontrado." };
         }
@@ -178,7 +178,7 @@ export async function deleteProduct(subdomain: string, productId: string) {
         const client = await clientPromise;
         const db = client.db('vematize');
 
-        const tenant = await db.collection<Tenant>('tenants').findOne({ subdomain }, { projection: { _id: 1 } });
+        const tenant = await db.collection<Tenant>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] }, { projection: { _id: 1 } });
         if (!tenant) {
             return { success: false, message: "Tenant não encontrado." };
         }
@@ -206,7 +206,7 @@ export async function getPaymentIntegrations(subdomain: string): Promise<{ id: s
     const client = await clientPromise;
     const db = client.db('vematize');
 
-    const tenant = await db.collection('tenants').findOne({ subdomain });
+    const tenant = await db.collection('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
     if (!tenant || !tenant.paymentIntegrations) {
       return [];
     }

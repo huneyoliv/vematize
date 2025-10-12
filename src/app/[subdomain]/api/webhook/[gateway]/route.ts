@@ -165,7 +165,7 @@ export async function POST(
                 return NextResponse.json({ success: true });
             }
 
-            const tenant = await db.collection<Tenant>('tenants').findOne({ subdomain });
+            const tenant = await db.collection<Tenant>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
             if (!tenant) {
                 console.error(`[MP Webhook] Tenant com subdomínio ${subdomain} não encontrado.`);
                 return NextResponse.json({ success: false, message: 'Tenant not found.' }, { status: 404 });

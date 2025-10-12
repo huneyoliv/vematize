@@ -17,7 +17,7 @@ export async function getMercadoPagoSettings(subdomain: string): Promise<Mercado
         const db = client.db('vematize');
         const tenantsCollection = db.collection('tenants');
 
-        const tenant = await tenantsCollection.findOne({ subdomain });
+        const tenant = await tenantsCollection.findOne({ $or: [{ username: subdomain }, { subdomain }] });
 
         if (!tenant) {
             console.error('Tenant not found for subdomain:', subdomain);

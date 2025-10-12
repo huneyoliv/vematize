@@ -23,7 +23,7 @@ export async function getBotConnections(subdomain: string): Promise<BotConnectio
     const db = client.db('vematize');
     
     const tenantsCollection = db.collection('tenants');
-    const tenant = await tenantsCollection.findOne({ subdomain });
+    const tenant = await tenantsCollection.findOne({ $or: [{ username: subdomain }, { subdomain }] });
 
     if (!tenant) {
       return {};

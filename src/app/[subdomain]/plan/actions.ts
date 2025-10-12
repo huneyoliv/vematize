@@ -145,7 +145,7 @@ export async function getPendingSubscription(subdomain: string): Promise<Subscri
         const client = await clientPromise;
         const db = client.db('vematize');
         
-        const tenant = await db.collection<TenantDocument>('tenants').findOne({ subdomain });
+        const tenant = await db.collection<TenantDocument>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
         if (!tenant) {
             console.log(`[Pending Check] Tenant not found for subdomain: ${subdomain}`);
             return null;
@@ -222,7 +222,7 @@ export async function getCurrentPlanInfo(subdomain: string): Promise<CurrentPlan
     const db = client.db('vematize');
     const tenantsCollection = db.collection<TenantDocument>('tenants');
     
-    const tenant = await tenantsCollection.findOne({ subdomain });
+    const tenant = await tenantsCollection.findOne({ $or: [{ username: subdomain }, { subdomain }] });
 
     if (!tenant) {
       return {
@@ -351,7 +351,7 @@ export async function createSubscriptionPayment(
             throw new Error('O plano selecionado não foi encontrado.');
         }
 
-        const tenant = await db.collection<TenantDocument>('tenants').findOne({ subdomain });
+        const tenant = await db.collection<TenantDocument>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
         if (!tenant) {
             throw new Error('Sua conta de usuário (tenant) não foi encontrada.');
         }

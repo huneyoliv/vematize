@@ -19,8 +19,9 @@ export async function GET(
     const db = client.db('vematize');
     const tenantsCollection = db.collection('tenants');
 
+    // Busca por username OU subdomain (banco usa username como identificador principal)
     const tenant = await tenantsCollection.findOne(
-      { subdomain },
+      { $or: [{ username: subdomain }, { subdomain }] },
       { projection: { subscriptionStatus: 1, trialEndsAt: 1, planId: 1 } }
     );
 

@@ -16,7 +16,7 @@ export async function POST(
         const db = client.db('vematize');
         const tenantsCollection = db.collection<Tenant>('tenants');
         
-        const tenant = await tenantsCollection.findOne({ subdomain });
+        const tenant = await tenantsCollection.findOne({ $or: [{ username: subdomain }, { subdomain }] });
         if (!tenant) {
             return NextResponse.json({ success: false, message: 'Tenant não encontrado.' }, { status: 404 });
         }

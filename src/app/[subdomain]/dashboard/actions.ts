@@ -21,7 +21,7 @@ export async function getBotStats(subdomain: string): Promise<BotStats> {
     const db = client.db('vematize');
     
     const tenantsCollection = db.collection('tenants');
-    const tenant = await tenantsCollection.findOne({ subdomain });
+    const tenant = await tenantsCollection.findOne({ $or: [{ username: subdomain }, { subdomain }] });
 
     if (!tenant) {
       // Return zeroed stats if tenant not found, to avoid breaking dashboard
@@ -65,7 +65,10 @@ export async function getDashboardStats(subdomain: string) {
         const client = await clientPromise;
         const db = client.db('vematize');
         
-        const tenant = await db.collection<Tenant>('tenants').findOne({ subdomain });
+        // Busca por username OU subdomain (banco usa username como identificador principal)
+        const tenant = await db.collection<Tenant>('tenants').findOne({ 
+            $or: [{ username: subdomain }, { subdomain }] 
+        });
         if (!tenant) {
             throw new Error('Tenant not found');
         }
