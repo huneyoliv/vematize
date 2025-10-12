@@ -47,7 +47,7 @@ function SidebarContent({ pathname, isMainAdmin, onLinkClick }: { pathname: stri
   return (
     <div className="flex flex-col gap-2 h-full">
       <div className="flex h-16 items-center border-b px-6">
-        <Link href="/krov/dashboard" className="flex items-center gap-2 font-semibold" onClick={onLinkClick}>
+        <Link href="/dashboard" className="flex items-center gap-2 font-semibold" onClick={onLinkClick}>
           <VematizeLogo className="h-6 w-6 text-primary" />
           <span>Painel Krov</span>
         </Link>
@@ -78,7 +78,7 @@ function SidebarContent({ pathname, isMainAdmin, onLinkClick }: { pathname: stri
         </nav>
       </div>
       <div className="mt-auto p-4 border-t">
-        <Link href="/krov/logout" className={cn(buttonVariants({ variant: 'ghost' }), 'w-full justify-start')} onClick={onLinkClick}>
+        <Link href="/logout" className={cn(buttonVariants({ variant: 'ghost' }), 'w-full justify-start')} onClick={onLinkClick}>
           <LogOut className="mr-2 h-4 w-4" />
           Sair
         </Link>
