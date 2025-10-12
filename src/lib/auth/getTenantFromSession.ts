@@ -27,20 +27,35 @@ export async function getTenantFromSession(): Promise<Tenant> {
     throw new Error('Forbidden: Only tenants can access this resource');
   }
 
-  // Busca o tenant no banco de dados
-  const client = await clientPromise;
-  const db = client.db('vematize');
-  
-  // Converte string para ObjectId
-  const tenant = await db.collection<Tenant>('tenants').findOne({
-    _id: new ObjectId(session.userId)
-  });
+  try {
+    // Busca o tenant no banco de dados
+    const client = await clientPromise;
+    const db = client.db('vematize');
+    
+    // Converte string para ObjectId
+    const tenant = await db.collection<Tenant>('tenants').findOne({
+      _id: new ObjectId(session.userId)
+    });
 
-  if (!tenant) {
-    throw new Error('Tenant not found in database');
+    if (!tenant) {
+      throw new Error('Tenant not found in database');
+    }
+
+    return tenant;
+  } catch (error: any) {
+    // Log detalhado de erros de conexão
+    if (error.name === 'MongoNetworkError' || error.code === 'ECONNRESET') {
+      console.error('[getTenantFromSession] MongoDB connection error:', {
+        name: error.name,
+        message: error.message,
+        code: error.code,
+      });
+      throw new Error('Database connection failed. Please try again.');
+    }
+    
+    // Re-throw outros erros
+    throw error;
   }
-
-  return tenant;
 }
 
 /**
