@@ -1,7 +1,6 @@
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { Sidebar } from '@/components/layout/sidebar';
-import { ClientSidebar } from '@/components/layout/client-sidebar';
+import TenantSidebar from '@/components/layout/tenant-sidebar';
 
 export default async function DashboardLayout({
   children,
@@ -22,7 +21,7 @@ export default async function DashboardLayout({
   // Tenant usa o dashboard fixo (sem subdomain na URL)
   return (
     <div className="flex min-h-screen">
-      <ClientSidebar />
+      <TenantSidebar />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>

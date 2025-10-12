@@ -21,16 +21,18 @@ export async function getBotStats(): Promise<BotStats> {
         const salesCollection = db.collection('sales');
         const botUsersCollection = db.collection<BotUser>('botUsers');
 
-        const [salesData, usersCount] = await Promise.all([
-            salesCollection.aggregate([
-                { $match: { tenantId, status: 'approved' } },
-                { $group: { _id: null, totalRevenue: { $sum: '$amount' }, totalSales: { $sum: 1 } } }
-            ]).toArray(),
-            botUsersCollection.countDocuments({ tenantId })
-        ]);
+        // Busca todas as vendas aprovadas do tenant
+        const approvedSales = await salesCollection.find({ 
+            tenantId, 
+            status: 'approved' 
+        }).toArray();
 
-        const totalRevenue = salesData[0]?.totalRevenue ?? 0;
-        const totalSales = salesData[0]?.totalSales ?? 0;
+        // Calcula totais manualmente
+        const totalRevenue = approvedSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+        const totalSales = approvedSales.length;
+
+        // Conta usuários
+        const usersCount = await botUsersCollection.countDocuments({ tenantId });
 
         return {
             totalRevenue,
@@ -54,16 +56,18 @@ export async function getDashboardStats() {
         const salesCollection = db.collection('sales');
         const botUsersCollection = db.collection<BotUser>('botUsers');
 
-        const [salesData, usersCount] = await Promise.all([
-            salesCollection.aggregate([
-                { $match: { tenantId, status: 'approved' } },
-                { $group: { _id: null, totalRevenue: { $sum: '$amount' }, totalSales: { $sum: 1 } } }
-            ]).toArray(),
-            botUsersCollection.countDocuments({ tenantId })
-        ]);
+        // Busca todas as vendas aprovadas do tenant
+        const approvedSales = await salesCollection.find({ 
+            tenantId, 
+            status: 'approved' 
+        }).toArray();
 
-        const totalRevenue = salesData[0]?.totalRevenue ?? 0;
-        const totalSales = salesData[0]?.totalSales ?? 0;
+        // Calcula totais manualmente
+        const totalRevenue = approvedSales.reduce((sum, sale) => sum + (sale.amount || 0), 0);
+        const totalSales = approvedSales.length;
+
+        // Conta usuários
+        const usersCount = await botUsersCollection.countDocuments({ tenantId });
 
         return {
             totalRevenue,
