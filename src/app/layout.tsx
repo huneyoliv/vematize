@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
+// Gateway desabilitado - usando HTTP Interactions
+// import '@/lib/discord/init-bots';
 
 const inter = Inter({ subsets: ['latin'] });
 

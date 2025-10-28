@@ -35,7 +35,6 @@ import {
 } from "@/components/ui/alert-dialog"
 
 interface FlowBuilderProps {
-    subdomain: string;
     initialData: z.infer<typeof BotConfigSchema> | null;
     products: Product[];
 }
@@ -56,7 +55,7 @@ const createDefaultFlow = (): z.infer<typeof BotFlowSchema> => {
     };
 };
 
-export function FlowBuilder({ subdomain, initialData, products }: FlowBuilderProps) {
+export function FlowBuilder({ initialData, products }: FlowBuilderProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -96,7 +95,7 @@ export function FlowBuilder({ subdomain, initialData, products }: FlowBuilderPro
 
         setIsSubmitting(true);
         try {
-            const result = await saveBotConfig(subdomain, values);
+            const result = await saveBotConfig(values);
             if (result.success) {
                 toast({ title: "Sucesso!", description: result.message });
                 router.refresh();

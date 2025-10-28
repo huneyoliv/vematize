@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { connectToDatabase } from '@/lib/mongodb';
+import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
     try {
-        const session = await auth();
-        if (!session?.user?.email) {
-            return NextResponse.json({ error: 'Não autenticado' }, { status: 401 });
-        }
+        // Verifica autenticação
+        await getTenantFromSession();
 
         const { botToken } = await request.json();
 
@@ -33,7 +30,11 @@ export async function POST(request: NextRequest) {
 
         // Aguardar o bot ficar pronto
         await new Promise((resolve) => {
-            client.once('ready', resolve);
+            if (client.isReady()) {
+                resolve(true);
+            } else {
+                client.once('clientReady', resolve);
+            }
         });
 
         console.log('[Discord Data] Bot conectado com sucesso');

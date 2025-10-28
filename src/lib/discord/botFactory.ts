@@ -432,7 +432,7 @@ export function createDiscordBotInstance(token: string, clientId: string) {
 
     let tenantCache: Tenant | null = null;
 
-    client.once('ready', async () => {
+    client.once('clientReady', async () => {
         console.log(`[Discord] Bot ready as ${client.user?.tag}`);
         
         try {
@@ -576,12 +576,116 @@ export function createDiscordBotInstance(token: string, clientId: string) {
                 }
             }
 
+            // ===== SELECT MENU (PAINÉIS DE VENDAS) =====
+            if (interaction.isStringSelectMenu()) {
+                const customId = interaction.customId;
+                const [action, panelId] = customId.split(':');
+
+                if (action === 'PANEL_SELECT') {
+                    await interaction.deferReply({ ephemeral: true });
+                    
+                    const productId = interaction.values[0]; // Produto selecionado
+                    const productsCol = db.collection<Product>('products');
+                    const product = await productsCol.findOne({ 
+                        _id: new ObjectId(productId), 
+                        tenantId: tenant._id.toString() 
+                    });
+
+                    if (!product) {
+                        await interaction.editReply({ content: '❌ Produto não encontrado.' });
+                        return;
+                    }
+
+                    // Verifica se já tem um carrinho pendente
+                    const salesCol = db.collection<Sale>('sales');
+                    let existingSale = await salesCol.findOne({
+                        tenantId: tenant._id.toString(),
+                        userId: user._id.toString(),
+                        productId: product._id.toString(),
+                        status: 'pending'
+                    });
+
+                    if (existingSale && existingSale.discordThreadId) {
+                        try {
+                            const existingThread = await client.channels.fetch(existingSale.discordThreadId);
+                            if (existingThread) {
+                                await interaction.editReply({ 
+                                    content: `✅ Você já tem um carrinho aberto para este produto: <#${existingSale.discordThreadId}>` 
+                                });
+                                return;
+                            }
+                        } catch (e) {
+                            // Thread não existe mais, continua criando novo
+                        }
+                    }
+
+                    // Cria thread de carrinho
+                    const thread = await createCartThread(
+                        client,
+                        interaction.channelId,
+                        interaction.user.id,
+                        product.name,
+                        tenant.discordSettings?.cartCategoryId
+                    );
+
+                    if (!thread) {
+                        await interaction.editReply({ content: '❌ Erro ao criar carrinho.' });
+                        return;
+                    }
+
+                    // Cria ou atualiza a venda
+                    if (existingSale) {
+                        await salesCol.updateOne(
+                            { _id: existingSale._id },
+                            { 
+                                $set: { 
+                                    discordThreadId: thread.id,
+                                    discordChannelId: interaction.channelId,
+                                    quantity: 1
+                                } 
+                            }
+                        );
+                        existingSale.discordThreadId = thread.id;
+                    } else {
+                        const newSale: Sale = {
+                            _id: new ObjectId(),
+                            tenantId: tenant._id.toString(),
+                            productId: product._id.toString(),
+                            userId: user._id.toString(),
+                            discordThreadId: thread.id,
+                            discordChannelId: interaction.channelId,
+                            quantity: 1,
+                            status: 'pending',
+                            paymentGateway: 'mercadopago',
+                            createdAt: new Date(),
+                            paymentDetails: {}
+                        };
+                        await salesCol.insertOne(newSale);
+                        existingSale = newSale;
+                    }
+
+                    await interaction.editReply({ 
+                        content: `✅ Seu carrinho foi criado! <#${thread.id}>` 
+                    });
+
+                    // Envia mensagem de boas-vindas no carrinho
+                    const welcomeEmbed = new EmbedBuilder()
+                        .setTitle(`🛒 Carrinho de Compras`)
+                        .setDescription(`Olá <@${user.discordId}>!\n\nVocê está comprando: **${product.name}**`)
+                        .setColor(0x5865F2);
+
+                    await thread.send({ embeds: [welcomeEmbed] });
+                    await updateCartMessage(thread, db, existingSale, product, tenant);
+                    return;
+                }
+            }
+
             // ===== BOTÕES =====
             if (interaction.isButton()) {
                 const customId = interaction.customId;
                 const [action, ...params] = customId.split(':');
 
-                // ===== PAINEL DE VENDAS: Botão Comprar =====
+                // ===== PAINEL DE VENDAS: Botão Comprar (LEGADO) =====
                 if (action === 'PANEL_BUY') {
                     await interaction.deferReply({ ephemeral: true });
                     

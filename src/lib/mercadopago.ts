@@ -44,7 +44,7 @@ export async function createMercadoPagoPreference(
             return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
         }
 
-        const notification_url = `${baseUrl}/${tenant.subdomain}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
+        const notification_url = `${baseUrl}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
 
         const body = {
             items: [
@@ -128,7 +128,7 @@ export async function createMercadoPagoPixPayment(
             return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
         }
 
-        const notification_url = `${baseUrl}/${tenant.subdomain}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
+        const notification_url = `${baseUrl}/api/webhook/${isSandbox ? 'sandmercadopago' : 'mercadopago'}`;
 
         const expirationDate = new Date();
         expirationDate.setMinutes(expirationDate.getMinutes() + 30);

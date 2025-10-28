@@ -4,21 +4,22 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { getBotConfig, getDiscordSettings } from "../actions";
+import { getBotConfig, getDiscordSettings, getBotConnectionDetails } from "../actions";
 import { platformConfigMap, supportedPlatforms, type Platform } from '../platform-config';
 import { PlatformConnectionManager } from "./components/config-form";
 import { FlowBuilder } from "./components/flow-builder";
 import { DiscordSettingsForm } from "./components/discord-settings-form";
 import { DiscordPanelsManager } from "./components/discord-panels-manager";
+import { DiscordInteractionsSetup } from "./components/discord-interactions-setup";
 import { getProducts } from "../../products/actions";
-import { requireTenantAccess } from '@/lib/auth';
+import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 
-export default async function BotPlatformPage({ params }: { params: { subdomain: string, platform: string } }) {
-    const { subdomain, platform } = params;
+export default async function BotPlatformPage({ params }: { params: { platform: string } }) {
+    const { platform } = params;
     
-    // Protege a rota - requer autenticação e acesso ao subdomain
+    // Protege a rota - requer autenticação
     try {
-        await requireTenantAccess(subdomain);
+        await getTenantFromSession();
     } catch (error) {
         redirect('/login');
     }
@@ -31,10 +32,11 @@ export default async function BotPlatformPage({ params }: { params: { subdomain:
     
     const config = platformConfigMap[platformKey];
 
-    const [botConfigData, productsData, discordSettingsData] = await Promise.all([
-        getBotConfig(subdomain),
-        getProducts(subdomain),
-        platformKey === 'discord' ? getDiscordSettings(subdomain) : Promise.resolve(null)
+    const [botConfigData, productsData, discordSettingsData, botConnectionData] = await Promise.all([
+        getBotConfig(),
+        getProducts(),
+        platformKey === 'discord' ? getDiscordSettings() : Promise.resolve(null),
+        getBotConnectionDetails(platformKey)
     ]);
 
     // Para Discord, usa layout diferente com sistema de painéis de vendas
@@ -43,7 +45,7 @@ export default async function BotPlatformPage({ params }: { params: { subdomain:
             <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
                 <div className="flex items-center space-x-2">
                     <Button asChild variant="ghost" size="icon">
-                        <Link href={`/${subdomain}/bots`}>
+                        <Link href="/bots">
                             <ChevronLeft className="h-4 w-4" />
                             <span className="sr-only">Voltar</span>
                         </Link>
@@ -57,29 +59,29 @@ export default async function BotPlatformPage({ params }: { params: { subdomain:
                         <TabsTrigger value="panels">Painéis de Vendas</TabsTrigger>
                         <TabsTrigger value="flow">Fluxo (Opcional)</TabsTrigger>
                     </TabsList>
-                    <TabsContent value="connection" className="pt-6">
-                        <PlatformConnectionManager 
-                            subdomain={subdomain}
+                    <TabsContent value="connection" className="pt-6 space-y-6">
+                        <PlatformConnectionManager />
+                        
+                        {/* Card de Interactions Endpoint URL */}
+                        <DiscordInteractionsSetup 
+                            isConnected={!!botConnectionData?.botToken}
                         />
                     </TabsContent>
                     <TabsContent value="settings" className="pt-6">
                         <DiscordSettingsForm 
-                            subdomain={subdomain}
                             initialData={discordSettingsData}
-                            botToken={botConfigData?.discord?.botToken}
+                            botToken={botConnectionData?.botToken}
                         />
                     </TabsContent>
                     <TabsContent value="panels" className="pt-6">
                         <DiscordPanelsManager 
-                            subdomain={subdomain}
                             initialData={discordSettingsData}
                             products={productsData}
-                            botToken={botConfigData?.discord?.botToken}
+                            botToken={botConnectionData?.botToken}
                         />
                     </TabsContent>
                     <TabsContent value="flow" className="pt-6">
                         <FlowBuilder
-                            subdomain={subdomain}
                             initialData={botConfigData}
                             products={productsData}
                         />
@@ -94,7 +96,7 @@ export default async function BotPlatformPage({ params }: { params: { subdomain:
         <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
              <div className="flex items-center space-x-2">
                 <Button asChild variant="ghost" size="icon">
-                    <Link href={`/${subdomain}/bots`}>
+                    <Link href="/bots">
                         <ChevronLeft className="h-4 w-4" />
                         <span className="sr-only">Voltar</span>
                     </Link>
@@ -107,13 +109,10 @@ export default async function BotPlatformPage({ params }: { params: { subdomain:
                     <TabsTrigger value="flow">Fluxo do Bot</TabsTrigger>
                 </TabsList>
                 <TabsContent value="connection" className="pt-6">
-                   <PlatformConnectionManager 
-                        subdomain={subdomain}
-                    />
+                   <PlatformConnectionManager />
                 </TabsContent>
                 <TabsContent value="flow" className="pt-6">
                     <FlowBuilder
-                        subdomain={subdomain}
                         initialData={botConfigData}
                         products={productsData}
                     />

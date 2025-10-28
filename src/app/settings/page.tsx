@@ -22,6 +22,8 @@ export default async function SettingsPage() {
   // Tenant vê as configurações do próprio tenant (Mercado Pago)
   // Importa dinamicamente para evitar conflito de rotas
   const { TenantSettingsContent } = await import('@/components/settings/tenant-settings-content');
-  return <TenantSettingsContent />;
+  const subdomain = session.subdomain || '';
+  return <TenantSettingsContent subdomain={subdomain} />;
 }
+
 

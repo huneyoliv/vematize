@@ -9,7 +9,7 @@
  */
 
 import { ReactNode } from 'react';
-import { Sidebar } from './sidebar';
+import Sidebar from './sidebar';
 import ClientSidebar from './client-sidebar';
 import { UserNav } from './user-nav';
 import { Toaster } from '@/components/ui/toaster';

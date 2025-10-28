@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { BotConfigSchema } from '@/lib/schemas';
 import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 import { ObjectId } from 'mongodb';
+import { getOrCreateInteractionsToken, regenerateInteractionsToken } from '@/lib/discord/interactions-token';
 
 export type BotConnections = {
     [key in Platform]?: { [key: string]: string };
@@ -28,13 +29,16 @@ export async function getBotConnections(): Promise<BotConnections> {
 export async function getBotConnectionDetails(platform: Platform): Promise<ConnectionDetails> {
   try {
     const tenant = await getTenantFromSession();
-    return tenant.connections?.[platform];
+    return tenant.connections?.[platform as keyof typeof tenant.connections];
   } catch (error) {
     console.error(`Database Error fetching details for ${platform}:`, error);
     return undefined;
   }
 }
 
+
+// Gateway desabilitado - usando HTTP Interactions
+// import { startDiscordBot, restartDiscordBot, isBotActive } from '@/lib/discord/bot-manager';
 
 export async function saveBotConnection(
     platform: Platform, 
@@ -99,9 +103,9 @@ export async function saveBotConnection(
             }
         }
         
-        // Para Discord, apenas confirmação simples
+        // Para Discord, apenas confirmação simples (HTTP Interactions)
         if (platform === 'discord') {
-            successMessage = 'Bot do Discord conectado com sucesso!';
+            successMessage = 'Bot do Discord conectado com sucesso! Configure o Interactions Endpoint URL na próxima etapa.';
         }
 
         revalidatePath('/bots');
@@ -184,7 +188,15 @@ export async function saveDiscordSettings(
     try {
         const tenant = await getTenantFromSession();
         const { DiscordSettingsSchema } = await import('@/lib/schemas');
-        const validatedData = DiscordSettingsSchema.parse(data);
+        
+        // Converte "none" em undefined para campos opcionais
+        const processedData = {
+            ...data,
+            cartCategoryId: data.cartCategoryId === 'none' ? undefined : data.cartCategoryId,
+            salesLogChannelId: data.salesLogChannelId === 'none' ? undefined : data.salesLogChannelId,
+        };
+        
+        const validatedData = DiscordSettingsSchema.parse(processedData);
 
         const client = await clientPromise;
         const db = client.db('vematize');
@@ -210,3 +222,51 @@ export async function saveDiscordSettings(
         return { success: false, message: 'Erro ao salvar as configurações do Discord.' };
     }
 }
+// Discord Interactions Token Management
+export async function getInteractionsUrl(): Promise<{ success: boolean; url?: string; token?: string; message?: string }> {
+    try {
+        const tenant = await getTenantFromSession();
+        const token = await getOrCreateInteractionsToken(tenant._id);
+        
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://swaptune.me';
+        const url = `${baseUrl}/api/discord-bot/interactions/${token}`;
+
+        return {
+            success: true,
+            url,
+            token
+        };
+    } catch (error) {
+        console.error('[Get Interactions URL] Error:', error);
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Erro ao obter URL'
+        };
+    }
+}
+
+export async function regenerateInteractionsUrl(): Promise<{ success: boolean; url?: string; token?: string; message?: string }> {
+    try {
+        const tenant = await getTenantFromSession();
+        const token = await regenerateInteractionsToken(tenant._id);
+        
+        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://swaptune.me';
+        const url = `${baseUrl}/api/discord-bot/interactions/${token}`;
+
+        revalidatePath('/bots/discord');
+
+        return {
+            success: true,
+            url,
+            token,
+            message: 'URL regenerada com sucesso!'
+        };
+    } catch (error) {
+        console.error('[Regenerate Interactions URL] Error:', error);
+        return {
+            success: false,
+            message: error instanceof Error ? error.message : 'Erro ao regenerar URL'
+        };
+    }
+}
+

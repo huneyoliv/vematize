@@ -79,6 +79,7 @@ export interface Tenant {
     discord?: {
       botToken: string;
       clientId: string;
+      publicKey?: string;
     };
   };
   botConfig?: BotConfig;
@@ -87,20 +88,7 @@ export interface Tenant {
     untrusted?: boolean; // Marcado como true quando webhook não tem secret configurado
     lastUntrustedAlert?: Date; // Última vez que alerta foi mostrado
   };
-  paymentIntegrations?: {
-    mercadopago?: {
-      mode: 'sandbox' | 'production';
-      sandbox_public_key?: string;
-      sandbox_access_token?: string;
-      sandbox_webhook_secret?: string;
-      production_public_key?: string;
-      production_access_token?: string;
-      production_webhook_secret?: string;
-      success_url?: string;
-      failure_url?: string;
-      pending_url?: string;
-    }
-  };
+  paymentIntegrations?: PaymentIntegrations;
 }
 
 export interface SaasPlan {
@@ -180,8 +168,33 @@ export interface MercadoPagoSettings {
     pending_url?: string;
 }
 
+export interface PushinPaySettings {
+    mode: 'sandbox' | 'production';
+    sandbox_api_key?: string;
+    sandbox_webhook_secret?: string;
+    production_api_key?: string;
+    production_webhook_secret?: string;
+    success_url?: string;
+    failure_url?: string;
+    pending_url?: string;
+}
+
+export interface StripeSettings {
+    mode: 'test' | 'live';
+    test_publishable_key?: string;
+    test_secret_key?: string;
+    test_webhook_secret?: string;
+    live_publishable_key?: string;
+    live_secret_key?: string;
+    live_webhook_secret?: string;
+    success_url?: string;
+    cancel_url?: string;
+}
+
 export interface PaymentIntegrations {
     mercadopago?: MercadoPagoSettings;
+    pushinpay?: PushinPaySettings;
+    stripe?: StripeSettings;
 }
 
 export interface KrovSettings {

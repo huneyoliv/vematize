@@ -2,7 +2,7 @@
 
 import clientPromise from '@/lib/mongodb';
 import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
-import type { BotUser } from '@/lib/types';
+import type { User } from '@/lib/types';
 
 export interface BotStats {
     totalRevenue: number;
@@ -19,7 +19,7 @@ export async function getBotStats(): Promise<BotStats> {
         const db = client.db('vematize');
         
         const salesCollection = db.collection('sales');
-        const botUsersCollection = db.collection<BotUser>('botUsers');
+        const botUsersCollection = db.collection<User>('botUsers');
 
         // Busca todas as vendas aprovadas do tenant
         const approvedSales = await salesCollection.find({ 
@@ -54,7 +54,7 @@ export async function getDashboardStats() {
         const db = client.db('vematize');
         
         const salesCollection = db.collection('sales');
-        const botUsersCollection = db.collection<BotUser>('botUsers');
+        const botUsersCollection = db.collection<User>('botUsers');
 
         // Busca todas as vendas aprovadas do tenant
         const approvedSales = await salesCollection.find({ 

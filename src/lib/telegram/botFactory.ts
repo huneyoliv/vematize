@@ -5,6 +5,8 @@ import type { Tenant, BotStep, BotButton, Product, Purchase, User, Sale } from '
 import { z } from 'zod';
 import { Db, ObjectId } from 'mongodb';
 import { createMercadoPagoPreference, createMercadoPagoPixPayment } from '@/lib/mercadopago';
+import { createPushinPayPixPayment, createPushinPayCheckout } from '@/lib/pushinpay';
+import { createStripeCheckoutSession } from '@/lib/stripe';
 
 function escapeMarkdown(text: string): string {
   if (!text) return '';
@@ -474,6 +476,108 @@ export function createBotInstance(token: string) {
                      } else {
                          await ctx.editMessageText(`❌ Erro ao gerar PIX: ${result.message}`);
                      }
+                 }
+             } else if (gateway === 'pushinpay') {
+                 if (method === 'credit_card') {
+                     if (saleForPurchase.paymentDetails?.init_point) {
+                         return await ctx.editMessageText('✅ Link de pagamento gerado! Clique no botão abaixo para pagar.', {
+                              reply_markup: { 
+                                  inline_keyboard: [
+                                      [{ text: 'Pagar Agora', url: saleForPurchase.paymentDetails.init_point }],
+                                      [{ text: '❌ Cancelar Compra', callback_data: `CANCEL_SALE:${saleId}` }]
+                                  ] 
+                              }
+                          });
+                     }
+ 
+                     const result = await createPushinPayCheckout(tenant, productForPurchase, saleId, buyerId);
+                     if (result.success && result.checkoutUrl) {
+                         await salesCol.updateOne({ _id: new ObjectId(saleId) }, { $set: { "paymentDetails.init_point": result.checkoutUrl, "paymentDetails.paymentId": result.paymentId }});
+                         await ctx.editMessageText('✅ Link de pagamento gerado! Clique no botão abaixo para pagar.', {
+                             reply_markup: { 
+                                 inline_keyboard: [
+                                     [{ text: 'Pagar Agora', url: result.checkoutUrl }],
+                                     [{ text: '❌ Cancelar Compra', callback_data: `CANCEL_SALE:${saleId}` }]
+                                 ] 
+                             }
+                         });
+                     } else {
+                         await ctx.editMessageText(`❌ Erro ao gerar link: ${result.message}`);
+                     }
+                 } else if (method === 'pix') {
+                     if (saleForPurchase.paymentDetails?.qrCode && saleForPurchase.paymentDetails?.qrCodeBase64) {
+                         await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
+                         const qrCodeBuffer = Buffer.from(saleForPurchase.paymentDetails.qrCodeBase64, 'base64');
+                         const pixCaption = `✅ *PIX para ${escapeMarkdown(productForPurchase.name)}*\\!\\n\\nPague com o QR Code ou use o código abaixo\\. Expira em 30 minutos.\\n\\n\`\`\`\n${escapeMarkdown(saleForPurchase.paymentDetails.qrCode)}\n\`\`\``;
+                         const photoMessage = await ctx.replyWithPhoto({ source: qrCodeBuffer }, {
+                             caption: pixCaption,
+                             parse_mode: 'MarkdownV2',
+                             reply_markup: { inline_keyboard: [[{ text: '❌ Cancelar Compra', callback_data: `CANCEL_SALE:${saleId}` }]] }
+                         });
+                         await salesCol.updateOne({ _id: new ObjectId(saleId) }, { $set: { telegramMessageId: photoMessage.message_id } });
+                         return;
+                     }
+ 
+                     const result = await createPushinPayPixPayment(tenant, productForPurchase, saleId, buyerId);
+                     
+                     if (result.success && result.qrCode && result.qrCodeBase64 && result.paymentId) {
+                         await salesCol.updateOne({ _id: new ObjectId(saleId) }, { 
+                             $set: { 
+                                 "paymentDetails.qrCode": result.qrCode,
+                                 "paymentDetails.qrCodeBase64": result.qrCodeBase64,
+                                 "paymentDetails.paymentId": result.paymentId,
+                             }
+                         });
+ 
+                         await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
+ 
+                         const qrCodeBuffer = Buffer.from(result.qrCodeBase64, 'base64');
+                         const pixCaption = `✅ *PIX para ${escapeMarkdown(productForPurchase.name)}*\\!\\n\\nPague com o QR Code ou use o código abaixo\\. Expira em 30 minutos.\\n\\n\`\`\`\n${escapeMarkdown(result.qrCode)}\n\`\`\``;
+                         
+                         const photoMessage = await ctx.replyWithPhoto({ source: qrCodeBuffer }, {
+                             caption: pixCaption,
+                             parse_mode: 'MarkdownV2',
+                             reply_markup: {
+                                 inline_keyboard: [
+                                     [{ text: '❌ Cancelar Compra', callback_data: `CANCEL_SALE:${saleId}` }]
+                                 ]
+                             }
+                         });
+                         await salesCol.updateOne(
+                             { _id: new ObjectId(saleId) },
+                             { $set: { telegramMessageId: photoMessage.message_id } }
+                         );
+ 
+                     } else {
+                         await ctx.editMessageText(`❌ Erro ao gerar PIX: ${result.message}`);
+                     }
+                 }
+             } else if (gateway === 'stripe') {
+                 // Stripe só suporta cartão de crédito por enquanto
+                 if (saleForPurchase.paymentDetails?.init_point) {
+                     return await ctx.editMessageText('✅ Link de pagamento gerado! Clique no botão abaixo para pagar.', {
+                          reply_markup: { 
+                              inline_keyboard: [
+                                  [{ text: 'Pagar Agora', url: saleForPurchase.paymentDetails.init_point }],
+                                  [{ text: '❌ Cancelar Compra', callback_data: `CANCEL_SALE:${saleId}` }]
+                              ] 
+                          }
+                      });
+                 }
+
+                 const result = await createStripeCheckoutSession(tenant, productForPurchase, saleId, buyerId);
+                 if (result.success && result.checkoutUrl) {
+                     await salesCol.updateOne({ _id: new ObjectId(saleId) }, { $set: { "paymentDetails.init_point": result.checkoutUrl, "paymentDetails.sessionId": result.sessionId }});
+                     await ctx.editMessageText('✅ Link de pagamento gerado! Clique no botão abaixo para pagar com cartão.', {
+                         reply_markup: { 
+                             inline_keyboard: [
+                                 [{ text: 'Pagar com Cartão', url: result.checkoutUrl }],
+                                 [{ text: '❌ Cancelar Compra', callback_data: `CANCEL_SALE:${saleId}` }]
+                             ] 
+                         }
+                     });
+                 } else {
+                     await ctx.editMessageText(`❌ Erro ao gerar checkout: ${result.message}`);
                  }
              }
             break;

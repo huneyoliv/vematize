@@ -33,13 +33,12 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 
 interface DiscordPanelsManagerProps {
-    subdomain: string;
     initialData: z.infer<typeof DiscordSettingsSchema> | null;
     products: Product[];
     botToken?: string;
 }
 
-export function DiscordPanelsManager({ subdomain, initialData, products, botToken }: DiscordPanelsManagerProps) {
+export function DiscordPanelsManager({ initialData, products, botToken }: DiscordPanelsManagerProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,13 +61,13 @@ export function DiscordPanelsManager({ subdomain, initialData, products, botToke
     async function onSubmit(values: z.infer<typeof DiscordSettingsSchema>) {
         setIsSubmitting(true);
         try {
-            const result = await saveDiscordSettings(subdomain, values);
+            const result = await saveDiscordSettings(values);
             if (result.success) {
                 toast({ title: "Sucesso!", description: result.message });
                 
                 // Publica os painéis automaticamente via API
                 try {
-                    const publishResponse = await fetch(`/${subdomain}/bots/api/publish-panels`, {
+                    const publishResponse = await fetch('/bots/api/publish-panels', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({})

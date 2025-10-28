@@ -46,7 +46,7 @@ export function PlanPicker({ subdomain, currentPlanId }: PlanPickerProps) {
         }
         setIsLoading(true);
         try {
-            const result = await createSubscriptionPayment(selectedPlanId, subdomain, paymentMethod);
+            const result = await createSubscriptionPayment(selectedPlanId, paymentMethod);
 
             if (result.error) {
                 toast({ variant: 'destructive', title: 'Erro ao criar pagamento', description: result.error });
@@ -137,7 +137,6 @@ export function PlanPicker({ subdomain, currentPlanId }: PlanPickerProps) {
                 isOpen={isQrCodeDialogOpen}
                 onClose={() => setIsQrCodeDialogOpen(false)}
                 qrCodeData={qrCodeData}
-                subdomain={subdomain}
             />
         </div>
     );

@@ -21,7 +21,7 @@ if (!process.env.MONGODB_URI) {
       serverSelectionTimeoutMS: 10000, // 10s - Timeout para selecionar servidor
       socketTimeoutMS: 45000, // 45s - Timeout de socket
       connectTimeoutMS: 10000, // 10s - Timeout de conexão
-      retryWrites: true, // Retry automático de escritas
+      retryWrites: false, // Desabilitado - deployment não suporta retryable writes
       retryReads: true, // Retry automático de leituras
     }
 

@@ -19,7 +19,6 @@ import { saveDiscordSettings } from "../../actions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface DiscordSettingsFormProps {
-    subdomain: string;
     initialData: z.infer<typeof DiscordSettingsSchema> | null;
     botToken?: string; // Token do bot vindo da conexão
 }
@@ -49,7 +48,7 @@ interface Role {
     position: number;
 }
 
-export function DiscordSettingsForm({ subdomain, initialData, botToken }: DiscordSettingsFormProps) {
+export function DiscordSettingsForm({ initialData, botToken }: DiscordSettingsFormProps) {
     const { toast } = useToast();
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,7 +90,7 @@ export function DiscordSettingsForm({ subdomain, initialData, botToken }: Discor
 
         setIsLoadingGuilds(true);
         try {
-            const response = await fetch(`/${subdomain}/bots/api/discord-data`, {
+            const response = await fetch('/bots/api/discord-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ botToken }),
@@ -128,7 +127,7 @@ export function DiscordSettingsForm({ subdomain, initialData, botToken }: Discor
 
         setIsLoadingGuildData(true);
         try {
-            const response = await fetch(`/${subdomain}/bots/api/discord-guild-data`, {
+            const response = await fetch('/bots/api/discord-guild-data', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ botToken, guildId }),
@@ -170,7 +169,7 @@ export function DiscordSettingsForm({ subdomain, initialData, botToken }: Discor
     async function onSubmit(values: z.infer<typeof DiscordSettingsSchema>) {
         setIsSubmitting(true);
         try {
-            const result = await saveDiscordSettings(subdomain, values);
+            const result = await saveDiscordSettings(values);
             if (result.success) {
                 toast({ title: "Sucesso!", description: result.message });
                 router.refresh();
@@ -395,7 +394,7 @@ export function DiscordSettingsForm({ subdomain, initialData, botToken }: Discor
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">Nenhuma (usar canal padrão)</SelectItem>
+                                                    <SelectItem value="none">Nenhuma (usar canal padrão)</SelectItem>
                                                     {categories.map(category => (
                                                         <SelectItem key={category.id} value={category.id}>
                                                             📁 {category.name}
@@ -424,7 +423,7 @@ export function DiscordSettingsForm({ subdomain, initialData, botToken }: Discor
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="">Nenhum</SelectItem>
+                                                    <SelectItem value="none">Nenhum</SelectItem>
                                                     {channels.map(channel => (
                                                         <SelectItem key={channel.id} value={channel.id}>
                                                             # {channel.name}

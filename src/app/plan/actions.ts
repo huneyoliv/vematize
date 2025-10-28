@@ -142,14 +142,14 @@ export async function checkSubscriptionStatus(subscriptionId: string): Promise<{
 
 export async function getPendingSubscription(): Promise<SubscriptionDocument | null> {
     try {
-        const client = await clientPromise;
-        const db = client.db('vematize');
-        
-        const tenant = await db.collection<TenantDocument>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
+        const tenant = await getTenantFromSession();
         if (!tenant) {
-            console.log(`[Pending Check] Tenant not found for subdomain: ${subdomain}`);
+            console.log(`[Pending Check] Tenant not found from session`);
             return null;
         }
+
+        const client = await clientPromise;
+        const db = client.db('vematize');
 
         // Find the most recent pending subscription created in the last 35 minutes
         const thirtyFiveMinutesAgo = new Date(new Date().getTime() - 35 * 60 * 1000);
@@ -199,18 +199,21 @@ export async function getAvailablePlans(): Promise<SaasPlan[]> {
 export async function getCurrentPlanInfo(): Promise<CurrentPlanInfo> {
   try {
     // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-    // Tenta validar, mas se não houver sessão, retorna dados públicos básicos
+    // Obtém o tenant da sessão atual
+    let tenant: TenantDocument | null = null;
     try {
-      await requireTenantAccess(subdomain);
+      tenant = await getTenantFromSession() as any;
     } catch (authError: any) {
       // Se não autenticado, retorna info básica sem dados sensíveis
-      if (authError.message === 'Unauthorized') {
+      if (authError.message && authError.message.includes('Unauthorized')) {
         return {
           status: 'none',
           statusLabel: 'Não autenticado',
           planName: 'N/A',
+          price: 0,
+          features: [],
           expiresAt: null,
-          trialEndsAt: null,
+          expiresAtLabel: 'Não autenticado',
           planId: null,
         };
       }
@@ -220,10 +223,7 @@ export async function getCurrentPlanInfo(): Promise<CurrentPlanInfo> {
 
     const client = await clientPromise;
     const db = client.db('vematize');
-    const tenantsCollection = db.collection<TenantDocument>('tenants');
     
-    // Tenant já obtido da sessão
-
     if (!tenant) {
       return {
         status: 'none',
@@ -317,7 +317,6 @@ export async function getCurrentPlanInfo(): Promise<CurrentPlanInfo> {
 
 export async function createSubscriptionPayment(
     planId: string, 
-    subdomain: string, 
     paymentMethod: 'pix' | 'card',
     couponCode?: string
 ): Promise<{ init_point?: string; qrCode?: string; qrCodeBase64?: string; subscriptionId?: string; error?: string }> {
@@ -325,7 +324,12 @@ export async function createSubscriptionPayment(
 
     try {
         // 🔒 VALIDAÇÃO CRÍTICA DE AUTORIZAÇÃO
-        await requireTenantAccess(subdomain);
+        const tenant = await getTenantFromSession() as any;
+        if (!tenant) {
+            throw new Error('Unauthorized: Tenant não encontrado na sessão');
+        }
+        
+        const subdomain = tenant.username || tenant.subdomain;
 
         const client = await clientPromise;
         const db = client.db('vematize');
@@ -351,10 +355,7 @@ export async function createSubscriptionPayment(
             throw new Error('O plano selecionado não foi encontrado.');
         }
 
-        const tenant = await db.collection<TenantDocument>('tenants').findOne({ $or: [{ username: subdomain }, { subdomain }] });
-        if (!tenant) {
-            throw new Error('Sua conta de usuário (tenant) não foi encontrada.');
-        }
+        // Tenant já foi obtido da sessão acima
 
         let price = newPlan.price;
         let title = `Plano ${newPlan.name} - Vematize`;
@@ -539,3 +540,4 @@ export async function createSubscriptionPayment(
         return { error: errorMessage };
     }
 }
+

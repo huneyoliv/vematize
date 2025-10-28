@@ -47,8 +47,49 @@ export const MercadoPagoSettingsSchema = z.object({
     path: ["production_public_key"], 
 });
 
+export const PushinPaySettingsSchema = z.object({
+    mode: z.enum(['sandbox', 'production']).default('sandbox'),
+    sandbox_api_key: z.string().optional(),
+    sandbox_webhook_secret: z.string().optional(),
+    production_api_key: z.string().optional(),
+    production_webhook_secret: z.string().optional(),
+    success_url: z.string().url({ message: "URL de sucesso inválida." }).optional().or(z.literal('')),
+    failure_url: z.string().url({ message: "URL de falha inválida." }).optional().or(z.literal('')),
+    pending_url: z.string().url({ message: "URL pendente inválida." }).optional().or(z.literal('')),
+}).refine(data => {
+    if (data.mode === 'production') {
+        return !!data.production_api_key;
+    }
+    return true;
+}, {
+    message: "A API Key de produção é obrigatória quando o modo de produção está ativo.",
+    path: ["production_api_key"],
+});
+
+export const StripeSettingsSchema = z.object({
+    mode: z.enum(['test', 'live']).default('test'),
+    test_publishable_key: z.string().optional(),
+    test_secret_key: z.string().optional(),
+    test_webhook_secret: z.string().optional(),
+    live_publishable_key: z.string().optional(),
+    live_secret_key: z.string().optional(),
+    live_webhook_secret: z.string().optional(),
+    success_url: z.string().url({ message: "URL de sucesso inválida." }).optional().or(z.literal('')),
+    cancel_url: z.string().url({ message: "URL de cancelamento inválida." }).optional().or(z.literal('')),
+}).refine(data => {
+    if (data.mode === 'live') {
+        return !!data.live_publishable_key && !!data.live_secret_key;
+    }
+    return true;
+}, {
+    message: "As chaves de produção (Publishable Key e Secret Key) são obrigatórias quando o modo live está ativo.",
+    path: ["live_publishable_key"],
+});
+
 export const PaymentIntegrationsSchema = z.object({
   mercadopago: MercadoPagoSettingsSchema.optional(),
+  pushinpay: PushinPaySettingsSchema.optional(),
+  stripe: StripeSettingsSchema.optional(),
 });
 
 export const SaasPlanSchema = z.object({

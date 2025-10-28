@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +13,6 @@ interface BotConfigCardsProps {
 }
 
 export function BotConfigCards({ initialConnections }: BotConfigCardsProps) {
-    const params = useParams();
-    const subdomain = params.subdomain as string;
-
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
             {supportedPlatforms.map(platform => {
@@ -50,7 +46,7 @@ export function BotConfigCards({ initialConnections }: BotConfigCardsProps) {
                         </CardContent>
                         <CardFooter>
                             <Button asChild className="w-full">
-                                <Link href={`/${subdomain}/bots/${platform}`}>
+                                <Link href={`/bots/${platform}`}>
                                   {isConnected ? 'Ver Configuração' : 'Configurar Conexão'}
                                 </Link>
                             </Button>

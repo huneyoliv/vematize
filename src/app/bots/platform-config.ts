@@ -31,7 +31,8 @@ export const platformConfigMap: Record<string, PlatformConfig> = {
         description: "Crie um bot do Discord para gerenciar sua comunidade.",
         icon: DiscordIcon,
         fields: [
-            { id: "botToken", label: "Token do Bot do Discord", placeholder: "Seu token do bot...", type: "password" }
+            { id: "botToken", label: "Token do Bot do Discord", placeholder: "Seu token do bot...", type: "password" },
+            { id: "publicKey", label: "Public Key da Aplicação", placeholder: "Sua public key...", type: "text" }
         ],
         connectionCheckKey: "botToken"
     }
@@ -40,3 +41,4 @@ export const platformConfigMap: Record<string, PlatformConfig> = {
 export const supportedPlatforms: Platform[] = ['telegram', 'discord'];
 
 export type Platform = keyof typeof platformConfigMap;
+

@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import clientPromise from '@/lib/mongodb';
 import type { Tenant, Product } from '@/lib/types';
 import { ObjectId } from 'mongodb';
+import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 
-export async function POST(
-    request: NextRequest,
-    { params }: { params: { subdomain: string } }
-) {
+export async function POST(request: NextRequest) {
     try {
-        const { subdomain } = params;
+        // Obtém o tenant da sessão
+        const sessionTenant = await getTenantFromSession();
+        
         const body = await request.json();
         const { panelId } = body; // Se vazio, publica todos
 
@@ -16,13 +16,14 @@ export async function POST(
         const db = client.db('vematize');
         const tenantsCollection = db.collection<Tenant>('tenants');
         
-        const tenant = await tenantsCollection.findOne({ $or: [{ username: subdomain }, { subdomain }] });
+        // Busca o tenant completo com todas as configurações
+        const tenant = await tenantsCollection.findOne({ _id: new ObjectId(sessionTenant._id) });
         if (!tenant) {
             return NextResponse.json({ success: false, message: 'Tenant não encontrado.' }, { status: 404 });
         }
 
-        if (!tenant.connections?.discord?.botToken || !tenant.connections?.discord?.clientId) {
-            return NextResponse.json({ success: false, message: 'Bot do Discord não configurado.' }, { status: 400 });
+        if (!tenant.connections?.discord?.botToken) {
+            return NextResponse.json({ success: false, message: 'Bot do Discord não configurado. Configure o token na aba Conexão.' }, { status: 400 });
         }
 
         if (!tenant.discordSettings?.panels || tenant.discordSettings.panels.length === 0) {
@@ -39,7 +40,7 @@ export async function POST(
         }
 
         // Importação dinâmica do discord.js
-        const { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, GatewayIntentBits } = await import('discord.js');
+        const { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, GatewayIntentBits } = await import('discord.js');
 
         // Cria o bot client
         const discordClient = new Client({
@@ -49,7 +50,19 @@ export async function POST(
             ]
         });
 
+        console.log('[Discord] Fazendo login do bot...');
         await discordClient.login(tenant.connections.discord.botToken);
+        
+        // Aguarda o bot ficar pronto
+        await new Promise((resolve) => {
+            if (discordClient.isReady()) {
+                resolve(true);
+            } else {
+                discordClient.once('clientReady', () => resolve(true));
+            }
+        });
+        
+        console.log(`[Discord] Bot conectado como ${discordClient.user?.tag}`);
 
         const publishResults: any[] = [];
 
@@ -92,42 +105,50 @@ export async function POST(
                         embed.setThumbnail(panel.embedConfig.thumbnailUrl);
                     }
 
-                    // Adiciona produtos como fields
-                    products.forEach(product => {
-                        const priceText = `R$ ${product.price.toFixed(2).replace('.', ',')}`;
-                        const description = product.description || 'Sem descrição';
+                    // Adiciona lista de produtos no embed (apenas nomes)
+                    if (products.length > 0) {
+                        const productList = products.map(p => `✅ ${p.name}`).join('\n');
                         embed.addFields({
-                            name: `🛒 ${product.name}`,
-                            value: `${description}\n💰 ${priceText}`,
+                            name: '📦 Produtos Disponíveis',
+                            value: productList,
                             inline: false
                         });
-                    });
+                    }
 
-                    // Cria botões
-                    const rows: any[] = [];
-                    let currentRow = new ActionRowBuilder();
-                    let buttonCount = 0;
+                    // Cria Select Menu com os produtos
+                    const selectMenu = new StringSelectMenuBuilder()
+                        .setCustomId(`PANEL_SELECT:${panel.id}`)
+                        .setPlaceholder('📋 Clique aqui para ver as opções')
+                        .setMinValues(1)
+                        .setMaxValues(1);
 
-                    products.forEach((product, index) => {
-                        if (buttonCount === 5) {
-                            rows.push(currentRow);
-                            currentRow = new ActionRowBuilder();
-                            buttonCount = 0;
+                    // Adiciona cada produto como opção do menu
+                    products.forEach((product) => {
+                        const priceText = `R$ ${product.price.toFixed(2).replace('.', ',')}`;
+                        
+                        // Determina estoque
+                        let stockText = '';
+                        if (product.productSubtype === 'activation_codes') {
+                            const availableStock = product.activationCodes?.length || 0;
+                            stockText = availableStock > 0 ? `📦 | Estoque: ${availableStock}` : '❌ | Estoque: 0';
+                        } else if (product.stock !== null && product.stock !== undefined) {
+                            stockText = product.stock > 0 ? `📦 | Estoque: ${product.stock}` : '❌ | Estoque: 0';
+                        } else {
+                            stockText = '♾️ | Estoque ilimitado';
                         }
 
-                        const button = new ButtonBuilder()
-                            .setCustomId(`PANEL_BUY:${product._id.toString()}`)
-                            .setLabel(`Comprar ${product.name}`)
-                            .setStyle(ButtonStyle.Success)
+                        const option = new StringSelectMenuOptionBuilder()
+                            .setLabel(product.name.substring(0, 100)) // Discord limita a 100 chars
+                            .setValue(product._id.toString())
+                            .setDescription(`💰 | Valor: ${priceText} - ${stockText}`)
                             .setEmoji('🛒');
 
-                        currentRow.addComponents(button);
-                        buttonCount++;
-
-                        if (index === products.length - 1) {
-                            rows.push(currentRow);
-                        }
+                        selectMenu.addOptions(option);
                     });
+
+                    const rows = [
+                        new ActionRowBuilder().addComponents(selectMenu)
+                    ];
 
                     // Envia ou atualiza mensagem
                     if (panel.messageId) {
@@ -139,7 +160,7 @@ export async function POST(
                             // Se falhar ao atualizar, cria nova mensagem
                             const message = await (channel as any).send({ embeds: [embed], components: rows });
                             await tenantsCollection.updateOne(
-                                { subdomain, 'discordSettings.panels.id': panel.id },
+                                { _id: tenant._id, 'discordSettings.panels.id': panel.id },
                                 { $set: { 'discordSettings.panels.$.messageId': message.id } }
                             );
                             publishResults.push({ panelId: panel.id, success: true, message: 'Novo painel criado.' });
@@ -147,7 +168,7 @@ export async function POST(
                     } else {
                         const message = await (channel as any).send({ embeds: [embed], components: rows });
                         await tenantsCollection.updateOne(
-                            { subdomain, 'discordSettings.panels.id': panel.id },
+                            { _id: tenant._id, 'discordSettings.panels.id': panel.id },
                             { $set: { 'discordSettings.panels.$.messageId': message.id } }
                         );
                         publishResults.push({ panelId: panel.id, success: true, message: 'Painel publicado.' });

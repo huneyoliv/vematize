@@ -16,7 +16,7 @@ export function SubscriptionAlerter({ subdomain }: SubscriptionAlerterProps) {
   useEffect(() => {
     const checkPending = async () => {
       try {
-        const pendingSubscription = await getPendingSubscription(subdomain);
+        const pendingSubscription = await getPendingSubscription();
         if (pendingSubscription) {
           toast({
             title: 'Pagamento Pendente',
