@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const efi_controller_1 = require("../controllers/efi.controller");
+const router = (0, express_1.Router)();
+router.post('/plans', (req, res) => efi_controller_1.efiController.createPlan(req, res));
+router.post('/subscribe', (req, res) => efi_controller_1.efiController.createSubscription(req, res));
+router.post('/webhook', (req, res) => efi_controller_1.efiController.handleWebhook(req, res));
+router.post('/webhook/register', (req, res) => efi_controller_1.efiController.registerWebhook(req, res));
+router.post('/pix-charge', (req, res) => efi_controller_1.efiController.createPixCharge(req, res));
+router.get('/pix-charge/:txid', (req, res) => efi_controller_1.efiController.getPixCharge(req, res));
+exports.default = router;

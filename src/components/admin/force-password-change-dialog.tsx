@@ -25,7 +25,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { setupInitialAdmin } from '@/app/krov/admins/actions';
+import { setupInitialAdmin } from '@/app/admins/actions';
 import { CreateAdminSchema } from '@/lib/schemas';
 
 interface ForcePasswordChangeDialogProps {
@@ -110,17 +110,17 @@ export function ForcePasswordChangeDialog({ open, onSuccess }: ForcePasswordChan
                 </FormItem>
               )}
             />
-             <DialogFooter>
-                <Button type="submit" disabled={isSubmitting} className="w-full">
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    'Salvar e Criar Usuário'
-                  )}
-                </Button>
+            <DialogFooter>
+              <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar e Criar Usuário'
+                )}
+              </Button>
             </DialogFooter>
           </form>
         </Form>

@@ -6,6 +6,9 @@ import clientPromise from '@/lib/mongodb';
 import { ClientLoginSchema } from '@/lib/schemas';
 import type { Tenant } from '@/lib/types';
 import { ObjectId } from 'mongodb';
+import { checkLoginRateLimit } from '@/lib/security/rate-limiter';
+import { logAuth } from '@/lib/logger';
+import { headers } from 'next/headers';
 
 type TenantDocument = Omit<Tenant, '_id' | 'ownerName'> & { _id: ObjectId, ownerName?: string, subdomain: string };
 
@@ -42,6 +45,26 @@ export async function unifiedLogin(
 ): Promise<UnifiedLoginResult> {
   try {
     const validatedData = UnifiedLoginSchema.parse(values);
+
+    // 🔒 RATE LIMITING: 5 tentativas por minuto
+    const headersList = headers();
+    const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || 'unknown';
+
+    const rateLimit = checkLoginRateLimit(validatedData.email, ip);
+    if (!rateLimit.allowed) {
+      logAuth('login.rate_limited', {
+        email: validatedData.email,
+        success: false,
+        ip,
+        errorMessage: 'Rate limit exceeded',
+      });
+
+      return {
+        success: false,
+        message: `Muitas tentativas de login. Tente novamente em ${rateLimit.retryAfter} segundos.`,
+      };
+    }
+
     const client = await clientPromise;
     const db = client.db('vematize');
 
@@ -49,7 +72,7 @@ export async function unifiedLogin(
     console.log('[unifiedLogin] Tentando login como TENANT para:', validatedData.email);
     const tenantsCollection = db.collection<TenantDocument>('tenants');
     const tenant = await tenantsCollection.findOne({ ownerEmail: validatedData.email });
-    
+
     console.log('[unifiedLogin] Tenant encontrado?', tenant ? 'SIM' : 'NÃO');
     console.log('[unifiedLogin] Tenant tem passwordHash?', tenant?.passwordHash ? 'SIM' : 'NÃO');
 
@@ -58,13 +81,31 @@ export async function unifiedLogin(
       console.log('[unifiedLogin] Senha tenant válida?', isPasswordValid ? 'SIM' : 'NÃO');
 
       if (isPasswordValid) {
+        // Check email verification
+        if (tenant.emailVerified === false) {
+          console.log('[unifiedLogin] ❌ E-mail não verificado');
+          return {
+            success: false,
+            message: 'Por favor, verifique seu e-mail antes de fazer login.',
+          };
+        }
+
         console.log('[unifiedLogin] ✅ LOGIN TENANT BEM-SUCEDIDO! Redirecionando para /dashboard');
+
+        // 🔒 LOG DE AUDITORIA
+        logAuth('login.success', {
+          userId: tenant._id.toString(),
+          email: tenant.ownerEmail,
+          success: true,
+          ip,
+        });
+
         // ✅ LOGIN TENANT BEM-SUCEDIDO
         const { createSession } = await import('@/lib/auth');
-        
+
         // Usa username do banco (campo principal) ao invés de subdomain
         const username = (tenant as any).username || tenant.subdomain;
-        
+
         const token = await createSession({
           userId: tenant._id.toString(),
           email: tenant.ownerEmail,
@@ -81,7 +122,7 @@ export async function unifiedLogin(
           maxAge: 60 * 60 * 24 * 7,
           path: '/',
         });
-        
+
         return {
           success: true,
           message: 'Login bem-sucedido!',
@@ -96,7 +137,7 @@ export async function unifiedLogin(
     // 2️⃣ TENTATIVA 2: LOGIN COMO ADMIN
     console.log('[unifiedLogin] Tenant falhou, tentando login como ADMIN para:', validatedData.email);
     const adminCollection = db.collection('admins');
-    
+
     // Verifica setup inicial (admin/admin)
     const adminCount = await adminCollection.countDocuments();
     if (adminCount === 0 && validatedData.email === 'admin' && validatedData.password === 'admin') {
@@ -104,7 +145,7 @@ export async function unifiedLogin(
       // Setup inicial - criar admin temporário
       const { createSession } = await import('@/lib/auth');
       const tempAdminId = new ObjectId();
-      
+
       const token = await createSession({
         userId: tempAdminId.toString(),
         email: 'admin',
@@ -132,21 +173,30 @@ export async function unifiedLogin(
     }
 
     // Tenta login como admin (usando email como username)
-    const admin = await adminCollection.findOne({ 
+    const admin = await adminCollection.findOne({
       $or: [
         { username: validatedData.email },
         { email: validatedData.email }
       ]
     });
-    
+
     console.log('[unifiedLogin] Admin encontrado?', admin ? 'SIM' : 'NÃO');
 
     if (admin) {
       const isPasswordValid = await bcrypt.compare(validatedData.password, admin.password);
       console.log('[unifiedLogin] Senha admin válida?', isPasswordValid ? 'SIM' : 'NÃO');
-      
+
       if (isPasswordValid) {
         console.log('[unifiedLogin] ✅ LOGIN ADMIN BEM-SUCEDIDO! Redirecionando para /krov/dashboard');
+
+        // 🔒 LOG DE AUDITORIA
+        logAuth('login.success', {
+          userId: admin._id.toString(),
+          email: admin.email || admin.username,
+          success: true,
+          ip,
+        });
+
         // ✅ LOGIN ADMIN BEM-SUCEDIDO
         const { createSession } = await import('@/lib/auth');
         const token = await createSession({
@@ -177,9 +227,21 @@ export async function unifiedLogin(
     }
 
     // ❌ Nenhuma credencial válida encontrada
-    return { 
-      success: false, 
-      message: 'E-mail/usuário ou senha inválidos.' 
+    // 🔒 LOG DE FALHA
+    logAuth('login.failed', {
+      email: validatedData.email,
+      success: false,
+      ip,
+      errorMessage: 'Invalid credentials',
+    });
+
+    // 🔒 PROTEÇÃO ANTI-ENUMERATION: Sempre retorna a mesma mensagem genérica
+    // Adiciona delay aleatório para prevenir timing attacks
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 100 + 200));
+
+    return {
+      success: false,
+      message: 'E-mail/usuário ou senha inválidos.'
     };
 
   } catch (error) {
@@ -252,13 +314,13 @@ export async function loginClient(
       maxAge: 60 * 60 * 24 * 7, // 7 dias
       path: '/',
     });
-    
-    return { 
-        success: true,
-        message: 'Login bem-sucedido!',
-        name: tenant.ownerName || 'Cliente', // Fallback for old accounts
-        email: tenant.ownerEmail,
-        subdomain: tenant.subdomain,
+
+    return {
+      success: true,
+      message: 'Login bem-sucedido!',
+      name: tenant.ownerName || 'Cliente', // Fallback for old accounts
+      email: tenant.ownerEmail,
+      subdomain: tenant.subdomain,
     };
 
   } catch (error) {

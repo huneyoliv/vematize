@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import clientPromise from '@/lib/mongodb';
-import { ClientRegisterSchema } from '@/lib/schemas';
+import { PreRegisterSchema } from '@/lib/schemas';
 import { add } from 'date-fns';
 
 type RegisterResult = {
@@ -11,44 +11,72 @@ type RegisterResult = {
   message: string;
 };
 
+import { checkRegisterRateLimit } from '@/lib/security/rate-limiter';
+import { headers } from 'next/headers';
+
+// ... (schema definition)
+
 export async function registerClient(
-  values: z.infer<typeof ClientRegisterSchema>
+  values: z.infer<typeof PreRegisterSchema>
 ): Promise<RegisterResult> {
   try {
-    const validatedData = ClientRegisterSchema.parse(values);
+    const validatedData = PreRegisterSchema.parse(values);
+
+    // 🔒 RATE LIMITING
+    const headersList = headers();
+    const ip = headersList.get('x-forwarded-for') || headersList.get('x-real-ip') || 'unknown';
+
+    const rateLimit = checkRegisterRateLimit(ip);
+    if (!rateLimit.allowed) {
+      return {
+        success: false,
+        message: `Muitas tentativas de registro. Tente novamente em ${rateLimit.retryAfter} segundos.`,
+      };
+    }
 
     const client = await clientPromise;
     const db = client.db('vematize');
     const tenantsCollection = db.collection('tenants');
 
-    // Check for existing subdomain or email
+    // Check for existing email
     const existingTenant = await tenantsCollection.findOne({
-      $or: [{ subdomain: validatedData.subdomain }, { ownerEmail: validatedData.email }],
+      ownerEmail: validatedData.email,
     });
 
     if (existingTenant) {
-      if (existingTenant.subdomain === validatedData.subdomain) {
-        return { success: false, message: 'Este subdomínio já está em uso.' };
-      }
-      if (existingTenant.ownerEmail === validatedData.email) {
-        return { success: false, message: 'Este e-mail já está cadastrado.' };
-      }
+      // If tenant exists but is pending setup, we could resend email or tell them to check email.
+      // If active, tell them to login.
+      return { success: false, message: 'Este e-mail já está cadastrado.' };
     }
 
-    const passwordHash = await bcrypt.hash(validatedData.password, 10);
-    const trialEndsAt = add(new Date(), { days: 30 });
+    // Generate verification token
+    const crypto = await import('crypto');
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpires = add(new Date(), { hours: 24 });
+    const tempId = crypto.randomUUID();
+
+    const ownerName = `${validatedData.firstName} ${validatedData.lastName}`;
 
     await tenantsCollection.insertOne({
-      ownerName: validatedData.name,
-      subdomain: validatedData.subdomain,
+      ownerName,
+      subdomain: `pending-${tempId}`, // Temporary subdomain
       ownerEmail: validatedData.email,
-      cpfCnpj: validatedData.cpfCnpj,
-      passwordHash: passwordHash,
-      trialEndsAt: trialEndsAt.toISOString(),
-      subscriptionStatus: 'trialing',
+      birthDate: validatedData.birthDate,
+      passwordHash: '', // No password yet
+      trialEndsAt: null, // Trial starts after setup
+      subscriptionStatus: 'pending_setup',
+      termsAcceptedAt: new Date().toISOString(),
+      emailVerified: false,
+      verificationToken,
+      verificationTokenExpires,
+      createdAt: new Date(),
     });
 
-    return { success: true, message: 'Conta criada com sucesso! Você será redirecionado.' };
+    // Send verification email
+    const { sendVerificationEmail } = await import('@/lib/email');
+    await sendVerificationEmail(validatedData.email, verificationToken, ownerName);
+
+    return { success: true, message: 'Conta criada com sucesso! Verifique seu e-mail para continuar o cadastro.' };
 
   } catch (error) {
     if (error instanceof z.ZodError) {

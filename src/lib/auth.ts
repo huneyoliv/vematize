@@ -10,6 +10,7 @@ export type SessionData = {
     name: string;
     subdomain?: string; // For tenant users
     type: 'admin' | 'tenant';
+    subscriptionStatus?: 'active' | 'inactive' | 'trialing' | 'canceled' | 'pending_setup';
     createdAt: Date;
     expiresAt: Date;
 };
@@ -60,6 +61,7 @@ export async function getSession(token?: string): Promise<SessionData | null> {
         name: session.name,
         subdomain: session.subdomain,
         type: session.type,
+        subscriptionStatus: session.subscriptionStatus,
         createdAt: session.createdAt,
         expiresAt: session.expiresAt,
     };

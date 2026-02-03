@@ -11,6 +11,7 @@ export async function createStripeCheckoutSession(
     product: Product & { _id: ObjectId },
     saleId: string,
     buyerId: string,
+    finalPriceOverride?: number
 ): Promise<{ success: boolean; message: string; checkoutUrl?: string; sessionId?: string; }> {
     try {
         const stripeSettings = tenant.paymentIntegrations?.stripe;
@@ -26,12 +27,16 @@ export async function createStripeCheckoutSession(
         }
 
         const stripe = new Stripe(secretKey, {
-            apiVersion: '2025-09-30.clover',
+            apiVersion: '2025-10-29.clover',
         });
 
-        let finalPrice = product.price;
-        if (product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date()) {
-            finalPrice = product.discountPrice;
+        let finalPrice = finalPriceOverride;
+
+        if (finalPrice === undefined) {
+            finalPrice = product.price;
+            if (product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date()) {
+                finalPrice = product.discountPrice;
+            }
         }
 
         if (!finalPrice || finalPrice <= 0) {
@@ -39,10 +44,11 @@ export async function createStripeCheckoutSession(
             return { success: false, message: 'O valor do produto deve ser maior que zero para pagamento.' };
         }
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
+
         if (!baseUrl) {
-            console.error('NEXT_PUBLIC_BASE_URL não está configurada. Configure no .env para usar webhooks do Stripe.');
-            return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
+            console.error('BASE_URL não está configurada. Configure no .env para usar webhooks do Stripe.');
+            return { success: false, message: 'Configuração de URL base não encontrada. Configure BASE_URL no arquivo .env.' };
         }
 
         const successUrl = stripeSettings.success_url || `${baseUrl}/success`;
@@ -126,7 +132,7 @@ export async function createStripePixPayment(
         }
 
         const stripe = new Stripe(secretKey, {
-            apiVersion: '2025-09-30.clover',
+            apiVersion: '2025-10-29.clover',
         });
 
         let finalPrice = product.price;
@@ -163,9 +169,9 @@ export async function createStripePixPayment(
 
         } catch (error: any) {
             console.error('Erro Stripe (PIX):', error?.message, error);
-            return { 
-                success: false, 
-                message: 'O Stripe ainda não suporta PIX. Use cartão de crédito.' 
+            return {
+                success: false,
+                message: 'O Stripe ainda não suporta PIX. Use cartão de crédito.'
             };
         }
 

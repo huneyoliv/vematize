@@ -1,0 +1,49 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <title>Verifique seu e-mail</title>
+  <style>
+  body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f7; color: #51545e; margin: 0; padding: 0; -webkit-text-size-adjust: none; height: 100%; line-height: 1.4; }
+  .email-wrapper { width: 100%; background-color: #f4f4f7; padding: 20px; }
+  .email-content { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); }
+  .email-header { background-color: #000000; padding: 20px; text-align: center; }
+  .email-header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: bold; }
+  .email-body { padding: 40px 30px; }
+  .email-body h2 { margin-top: 0; color: #333333; font-size: 20px; font-weight: bold; }
+  .email-body p { margin: 20px 0; font-size: 16px; color: #51545e; }
+  .button-container { text-align: center; margin: 30px 0; }
+  .button { display: inline-block; background-color: #0070f3; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; }
+  .email-footer { background-color: #f4f4f7; padding: 20px; text-align: center; font-size: 12px; color: #6b6e76; }
+  .email-footer a { color: #6b6e76; text-decoration: underline; }
+</style>
+</head>
+<body>
+  <div class="email-wrapper">
+    <div class="email-content">
+      <div class="email-header">
+        <h1>Vematize</h1>
+      </div>
+      <div class="email-body">
+        
+    <h2>Bem-vindo(a), João Silva!</h2>
+    <p>Obrigado por se cadastrar no Vematize. Estamos muito felizes em tê-lo conosco.</p>
+    <p>Para garantir a segurança da sua conta e acessar todos os recursos, por favor confirme seu endereço de e-mail clicando no botão abaixo:</p>
+    <div class="button-container">
+      <a href="http://localhost:3000/verify-email?token=123" class="button">Verificar E-mail</a>
+    </div>
+    <p>Se o botão não funcionar, copie e cole o link abaixo no seu navegador:</p>
+    <p><a href="http://localhost:3000/verify-email?token=123">http://localhost:3000/verify-email?token=123</a></p>
+    <p>Este link é válido por 24 horas.</p>
+  
+      </div>
+    </div>
+    <div class="email-footer">
+      <p>&copy; 2025 Vematize. Todos os direitos reservados.</p>
+      <p>Este é um e-mail automático, por favor não responda.</p>
+    </div>
+  </div>
+</body>
+</html>

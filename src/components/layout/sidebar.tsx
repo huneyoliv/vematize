@@ -14,15 +14,37 @@ import {
   Building,
   Ticket,
   Menu,
+  Package,
+  Bot,
+  CreditCard,
+  Users as UsersIcon,
+  Search,
+  Upload,
+
 } from 'lucide-react';
 import { VematizeLogo } from '../icons/logo';
 
-const sidebarNavItems = [
+// ✅ ITENS DE NAVEGAÇÃO PARA ADMIN
+const adminNavItems = [
   { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { title: 'Clientes', href: '/clients', icon: Building },
-  { title: 'Cupons', href: '/coupons', icon: Ticket },
+  { title: 'Cupons', href: '/admins/coupons', icon: Ticket },
   { title: 'Relatórios', href: '/reports', icon: BarChart },
-  { title: 'Administradores', href: '/admins', icon: 'shield', adminOnly: true },
+  { title: 'Administradores', href: '/admins', icon: 'shield' },
+  { title: 'Configurações', href: '/settings', icon: Settings },
+];
+
+// ✅ ITENS DE NAVEGAÇÃO PARA TENANT
+// ✅ ITENS DE NAVEGAÇÃO PARA TENANT
+const tenantNavItems = [
+  { title: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { title: 'Produtos', href: '/products', icon: Package },
+  { title: 'Bots', href: '/bots', icon: Bot },
+  { title: 'Plano', href: '/plan', icon: CreditCard },
+  { title: 'Cupons', href: '/coupons', icon: Ticket },
+  { title: 'Vendas & Usuários', href: '/sales/search', icon: Search },
+
+  { title: 'Uploads', href: '/uploads', icon: Upload },
   { title: 'Configurações', href: '/settings', icon: Settings },
 ];
 
@@ -43,23 +65,30 @@ const AdminIcon = () => (
   </svg>
 );
 
-function SidebarContent({ pathname, isMainAdmin, onLinkClick }: { pathname: string; isMainAdmin: boolean; onLinkClick?: () => void }) {
+interface SidebarContentProps {
+  pathname: string;
+  userType: 'admin' | 'tenant';
+  onLinkClick?: () => void;
+}
+
+function SidebarContent({ pathname, userType, onLinkClick }: SidebarContentProps) {
+  // ✅ Seleciona os itens corretos baseado no tipo de usuário
+  const navItems = userType === 'admin' ? adminNavItems : tenantNavItems;
+  const panelTitle = userType === 'admin' ? 'Painel Admin' : 'Painel Vematize';
+
   return (
     <div className="flex flex-col gap-2 h-full">
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/dashboard" className="flex items-center gap-2 font-semibold" onClick={onLinkClick}>
           <VematizeLogo className="h-6 w-6 text-primary" />
-          <span>Painel Krov</span>
+          <span>{panelTitle}</span>
         </Link>
       </div>
       <div className="flex-1 overflow-y-auto py-2">
         <nav className="grid items-start gap-1 px-4 text-sm font-medium">
-          {sidebarNavItems.map((item) => {
-            if (item.adminOnly && !isMainAdmin) {
-              return null;
-            }
+          {navItems.map((item) => {
             const Icon = item.icon === 'shield' ? AdminIcon : item.icon;
-            const isActive = pathname.startsWith(item.href);
+            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
             return (
               <Link
                 key={item.href}
@@ -87,11 +116,13 @@ function SidebarContent({ pathname, isMainAdmin, onLinkClick }: { pathname: stri
   );
 }
 
-export default function Sidebar() {
+interface SidebarProps {
+  userType: 'admin' | 'tenant';
+}
+
+export default function Sidebar({ userType }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  // TODO: Replace with real session logic
-  const isMainAdmin = true;
 
   return (
     <>
@@ -105,14 +136,14 @@ export default function Sidebar() {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64">
-            <SidebarContent pathname={pathname} isMainAdmin={isMainAdmin} onLinkClick={() => setMobileOpen(false)} />
+            <SidebarContent pathname={pathname} userType={userType} onLinkClick={() => setMobileOpen(false)} />
           </SheetContent>
         </Sheet>
       </div>
 
       {/* Desktop Sidebar */}
       <aside className="relative hidden w-64 border-r bg-background lg:block">
-        <SidebarContent pathname={pathname} isMainAdmin={isMainAdmin} />
+        <SidebarContent pathname={pathname} userType={userType} />
       </aside>
     </>
   );

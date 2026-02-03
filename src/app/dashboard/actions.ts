@@ -4,6 +4,13 @@ import clientPromise from '@/lib/mongodb';
 import { getTenantFromSession } from '@/lib/auth/getTenantFromSession';
 import type { User } from '@/lib/types';
 
+export interface ReportData {
+    dailySales: {
+        date: string;
+        vendas: number;
+    }[];
+}
+
 export interface BotStats {
     totalRevenue: number;
     totalSales: number;
@@ -17,14 +24,14 @@ export async function getBotStats(): Promise<BotStats> {
 
         const client = await clientPromise;
         const db = client.db('vematize');
-        
+
         const salesCollection = db.collection('sales');
         const botUsersCollection = db.collection<User>('botUsers');
 
         // Busca todas as vendas aprovadas do tenant
-        const approvedSales = await salesCollection.find({ 
-            tenantId, 
-            status: 'approved' 
+        const approvedSales = await salesCollection.find({
+            tenantId,
+            status: 'approved'
         }).toArray();
 
         // Calcula totais manualmente
@@ -52,14 +59,14 @@ export async function getDashboardStats() {
 
         const client = await clientPromise;
         const db = client.db('vematize');
-        
+
         const salesCollection = db.collection('sales');
         const botUsersCollection = db.collection<User>('botUsers');
 
         // Busca todas as vendas aprovadas do tenant
-        const approvedSales = await salesCollection.find({ 
-            tenantId, 
-            status: 'approved' 
+        const approvedSales = await salesCollection.find({
+            tenantId,
+            status: 'approved'
         }).toArray();
 
         // Calcula totais manualmente

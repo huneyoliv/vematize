@@ -1,0 +1,10 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const mercadopago_controller_1 = require("../controllers/mercadopago.controller");
+const router = (0, express_1.Router)();
+router.post('/saas/subscribe', (req, res) => mercadopago_controller_1.mercadoPagoController.createSaasSubscription(req, res));
+router.post('/saas/preference', (req, res) => mercadopago_controller_1.mercadoPagoController.createSaasPreference(req, res));
+router.post('/saas/pix-payment', (req, res) => mercadopago_controller_1.mercadoPagoController.createSaasPixPayment(req, res));
+router.get('/saas/status/:id', (req, res) => mercadopago_controller_1.mercadoPagoController.getSaasPaymentStatus(req, res));
+exports.default = router;

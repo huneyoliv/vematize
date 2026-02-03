@@ -10,6 +10,7 @@ export async function createPushinPayPixPayment(
     product: Product & { _id: ObjectId },
     saleId: string,
     buyerId: string,
+    finalPriceOverride?: number
 ): Promise<{ success: boolean; message: string; qrCode?: string; qrCodeBase64?: string; paymentId?: string; }> {
     try {
         const ppSettings = tenant.paymentIntegrations?.pushinpay;
@@ -24,9 +25,13 @@ export async function createPushinPayPixPayment(
             return { success: false, message: `As credenciais para o modo ${ppSettings.mode} do PushinPay não foram configuradas.` };
         }
 
-        let finalPrice = product.price;
-        if (product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date()) {
-            finalPrice = product.discountPrice;
+        let finalPrice = finalPriceOverride;
+
+        if (finalPrice === undefined) {
+            finalPrice = product.price;
+            if (product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date()) {
+                finalPrice = product.discountPrice;
+            }
         }
 
         if (!finalPrice || finalPrice <= 0) {
@@ -34,10 +39,10 @@ export async function createPushinPayPixPayment(
             return { success: false, message: 'O valor do produto deve ser maior que zero para pagamento.' };
         }
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
         if (!baseUrl) {
-            console.error('NEXT_PUBLIC_BASE_URL não está configurada. Configure no .env para usar webhooks do PushinPay.');
-            return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
+            console.error('BASE_URL não está configurada. Configure no .env para usar webhooks do PushinPay.');
+            return { success: false, message: 'Configuração de URL base não encontrada. Configure BASE_URL no arquivo .env.' };
         }
 
         const webhookUrl = `${baseUrl}/api/webhook/${isSandbox ? 'sandpushinpay' : 'pushinpay'}`;
@@ -62,8 +67,8 @@ export async function createPushinPayPixPayment(
 
         try {
             // URL base da API do PushinPay (ajustar conforme documentação real)
-            const apiBaseUrl = isSandbox 
-                ? 'https://sandbox-api.pushinpay.com.br' 
+            const apiBaseUrl = isSandbox
+                ? 'https://sandbox-api.pushinpay.com.br'
                 : 'https://api.pushinpay.com.br';
 
             const response = await fetch(`${apiBaseUrl}/v1/pix/payments`, {
@@ -78,9 +83,9 @@ export async function createPushinPayPixPayment(
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Erro PushinPay:', errorData);
-                return { 
-                    success: false, 
-                    message: `Erro ao criar pagamento PIX: ${errorData.message || response.statusText}` 
+                return {
+                    success: false,
+                    message: `Erro ao criar pagamento PIX: ${errorData.message || response.statusText}`
                 };
             }
 
@@ -118,6 +123,7 @@ export async function createPushinPayCheckout(
     product: Product & { _id: ObjectId },
     saleId: string,
     buyerId: string,
+    finalPriceOverride?: number
 ): Promise<{ success: boolean; message: string; checkoutUrl?: string; paymentId?: string; }> {
     try {
         const ppSettings = tenant.paymentIntegrations?.pushinpay;
@@ -132,18 +138,22 @@ export async function createPushinPayCheckout(
             return { success: false, message: `As credenciais para o modo ${ppSettings.mode} do PushinPay não foram configuradas.` };
         }
 
-        let finalPrice = product.price;
-        if (product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date()) {
-            finalPrice = product.discountPrice;
+        let finalPrice = finalPriceOverride;
+
+        if (finalPrice === undefined) {
+            finalPrice = product.price;
+            if (product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date()) {
+                finalPrice = product.discountPrice;
+            }
         }
 
         if (!finalPrice || finalPrice <= 0) {
             return { success: false, message: 'O valor do produto deve ser maior que zero para pagamento.' };
         }
 
-        const baseUrl = process.env.NEXT_PUBLIC_BASE_URL;
+        const baseUrl = process.env.BASE_URL || process.env.NEXT_PUBLIC_BASE_URL;
         if (!baseUrl) {
-            return { success: false, message: 'Configuração de URL base não encontrada. Configure NEXT_PUBLIC_BASE_URL no arquivo .env.' };
+            return { success: false, message: 'Configuração de URL base não encontrada. Configure BASE_URL no arquivo .env.' };
         }
 
         const webhookUrl = `${baseUrl}/api/webhook/${isSandbox ? 'sandpushinpay' : 'pushinpay'}`;
@@ -165,8 +175,8 @@ export async function createPushinPayCheckout(
         console.log('PushinPay Checkout Body:', JSON.stringify(payload, null, 2));
 
         try {
-            const apiBaseUrl = isSandbox 
-                ? 'https://sandbox-api.pushinpay.com.br' 
+            const apiBaseUrl = isSandbox
+                ? 'https://sandbox-api.pushinpay.com.br'
                 : 'https://api.pushinpay.com.br';
 
             const response = await fetch(`${apiBaseUrl}/v1/checkout`, {
@@ -181,9 +191,9 @@ export async function createPushinPayCheckout(
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Erro PushinPay:', errorData);
-                return { 
-                    success: false, 
-                    message: `Erro ao criar checkout: ${errorData.message || response.statusText}` 
+                return {
+                    success: false,
+                    message: `Erro ao criar checkout: ${errorData.message || response.statusText}`
                 };
             }
 

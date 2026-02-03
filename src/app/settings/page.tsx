@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   // Admin vê as configurações do Krov (globais)
   if (session.type === 'admin') {
-    const { default: AdminSettings } = await import('@/app/krov/settings/page');
+    const { default: AdminSettings } = await import('@/components/settings/admin-settings-page');
     return <AdminSettings />;
   }
 

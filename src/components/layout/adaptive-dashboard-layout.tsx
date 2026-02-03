@@ -23,10 +23,10 @@ interface AdaptiveDashboardLayoutProps {
   adminExtras?: ReactNode;
 }
 
-export async function AdaptiveDashboardLayout({ 
-  children, 
+export async function AdaptiveDashboardLayout({
+  children,
   tenantExtras,
-  adminExtras 
+  adminExtras
 }: AdaptiveDashboardLayoutProps) {
   // Obtém sessão do usuário
   const session = await getCurrentSession();
@@ -44,8 +44,8 @@ export async function AdaptiveDashboardLayout({
   return (
     <div className="flex min-h-screen bg-secondary/10">
       {/* Sidebar adaptativa */}
-      <SidebarComponent />
-      
+      <SidebarComponent userType={session.type} />
+
       <main className="flex-1 flex-col overflow-y-auto pt-16 lg:pt-0">
         {/* User navigation no canto superior direito */}
         <div className="absolute top-4 right-4 z-20">

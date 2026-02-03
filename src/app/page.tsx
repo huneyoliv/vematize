@@ -1,23 +1,27 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { DotScreenShader } from '@/components/ui/dot-shader-background';
+import { Pricing } from '@/components/ui/pricing';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Check } from 'lucide-react';
 import Link from 'next/link';
-import { getSaasPlans } from '@/app/krov/settings/actions';
+import { getLandingPagePlans, LandingPagePlan } from '@/app/settings/actions';
 import type { SaasPlan } from '@/lib/types';
+import * as React from 'react';
 import { useState, useEffect } from 'react';
 import { VematizeLogo } from '@/components/icons/logo';
+import { NotificationCard } from '@/components/ui/notification-card';
 
 function formatCurrency(value: number) {
-    return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 }
 
 const platforms = ['Telegram', 'Discord'];
 
 // Trigger new deployment
 export default function HomePage() {
-  const [plans, setPlans] = useState<SaasPlan[]>([]);
+  const [plans, setPlans] = useState<LandingPagePlan[]>([]);
   const [isLoadingPlans, setIsLoadingPlans] = useState(true);
 
   // Animation state
@@ -25,13 +29,44 @@ export default function HomePage() {
   const [subIndex, setSubIndex] = useState(0);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Notification animation state
+  const [shouldAnimateNotifications, setShouldAnimateNotifications] = useState(false);
+  const notificationsRef = React.useRef<HTMLDivElement>(null);
+
+  // Intersection Observer for scroll-triggered animation
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setShouldAnimateNotifications(true);
+          }
+        });
+      },
+      {
+        threshold: 0.2,
+        rootMargin: '0px 0px -100px 0px',
+      }
+    );
+
+    if (notificationsRef.current) {
+      observer.observe(notificationsRef.current);
+    }
+
+    return () => {
+      if (notificationsRef.current) {
+        observer.unobserve(notificationsRef.current);
+      }
+    };
+  }, []);
+
   // Fetch plans on mount
   useEffect(() => {
     const fetchPlans = async () => {
       setIsLoadingPlans(true);
       try {
-        const allPlans = await getSaasPlans();
-        setPlans(allPlans.filter(p => p.isActive));
+        const allPlans = await getLandingPagePlans();
+        setPlans(allPlans);
       } catch (error) {
         console.error("Failed to fetch plans:", error);
       } finally {
@@ -40,7 +75,7 @@ export default function HomePage() {
     };
     fetchPlans();
   }, []);
-  
+
   // Typing animation effect
   useEffect(() => {
     if (subIndex === platforms[platformIndex].length && !isDeleting) {
@@ -62,7 +97,7 @@ export default function HomePage() {
 
     return () => clearTimeout(timer);
   }, [subIndex, isDeleting, platformIndex]);
-  
+
   const displayText = platforms[platformIndex].substring(0, subIndex);
 
   return (
@@ -82,12 +117,18 @@ export default function HomePage() {
         </nav>
       </header>
       <main className="flex-1 flex flex-col">
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 flex items-center justify-center text-center bg-gradient-to-b from-background to-secondary/50">
-          <div className="container px-4 md:px-6">
+        <section className="relative w-full py-12 md:py-24 lg:py-32 xl:py-48 flex items-center justify-center text-center overflow-hidden">
+          {/* Shader Background */}
+          <div className="absolute inset-0">
+            <DotScreenShader />
+          </div>
+
+          {/* Content with higher z-index */}
+          <div className="container px-4 md:px-6 relative z-10">
             <div className="flex flex-col items-center space-y-4 animate-fade-in">
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl text-white mix-blend-exclusion">
                 Automatize suas vendas
-                 <span className="block">
+                <span className="block">
                   no{' '}
                   <span className="text-primary">
                     {displayText}
@@ -95,12 +136,43 @@ export default function HomePage() {
                   </span>
                 </span>
               </h1>
-              <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
+              <p className="mx-auto max-w-[700px] text-white/90 mix-blend-exclusion md:text-xl">
                 Crie, gerencie e escale seu bot de atendimento com nossa plataforma SaaS completa. Foco no seu negócio, não na infraestrutura.
               </p>
-              <Button asChild size="lg" className="mt-4">
+              <Button asChild size="lg" className="mt-8 relative z-20">
                 <Link href="/register">Comece seus 30 Dias Grátis</Link>
               </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-background flex flex-col items-center justify-center overflow-hidden border-b border-white/5">
+          <div className="container px-4 md:px-6 flex flex-col items-center text-center">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl mb-4">
+              Escale as suas vendas
+            </h2>
+            <p className="max-w-[700px] text-muted-foreground md:text-xl mb-12">
+              Receba notificações instantâneas de cada venda realizada. Acompanhe seu crescimento em tempo real.
+            </p>
+
+            <div ref={notificationsRef} className="flex flex-wrap justify-center items-center gap-6 w-full max-w-6xl">
+              <NotificationCard
+                imageSrc="/notifications/efi-bank.png"
+                alt="Notificação Efí Bank - Transferência recebida no valor de R$71,32"
+                className={shouldAnimateNotifications ? "animate-[slide-up_0.6s_ease-out_0.2s_both]" : "opacity-0"}
+              />
+
+              <NotificationCard
+                imageSrc="/notifications/mercado-pago.png"
+                alt="Notificação Mercado Pago - Transferência PIX recebida de R$81,92"
+                className={shouldAnimateNotifications ? "animate-[slide-up_0.6s_ease-out_0.4s_both]" : "opacity-0"}
+              />
+
+              <NotificationCard
+                imageSrc="/notifications/stripe.png"
+                alt="Notificação Stripe - Nova venda realizada de R$126,97"
+                className={shouldAnimateNotifications ? "animate-[slide-up_0.6s_ease-out_0.6s_both]" : "opacity-0"}
+              />
             </div>
           </div>
         </section>
@@ -136,55 +208,22 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section id="pricing" className="w-full py-12 md:py-24 lg:py-32 flex items-center justify-center">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">
-                Preços Simples e Transparentes
-              </h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                Escolha o plano que melhor se adapta às suas necessidades. Cancele quando quiser.
-              </p>
+        <section id="pricing" className="w-full">
+          {isLoadingPlans ? (
+            <div className="container py-20 text-center text-muted-foreground">
+              <p>Carregando planos...</p>
             </div>
-            <div className="mx-auto mt-12 grid max-w-5xl items-stretch justify-center gap-8 sm:grid-cols-2 lg:grid-cols-3">
-              {isLoadingPlans ? (
-                 <div className="col-span-full text-center text-muted-foreground">
-                    <p>Carregando planos...</p>
-                 </div>
-              ) : plans.length > 0 ? (
-                plans.map(plan => (
-                  <Card key={plan.id} className="flex flex-col shadow-lg hover:shadow-primary/20 transition-shadow">
-                      <CardHeader className="items-center pb-4">
-                          <CardTitle>{plan.name}</CardTitle>
-                      </CardHeader>
-                      <CardContent className="flex flex-col flex-1 gap-4 pt-0">
-                          <div className="flex items-baseline justify-center gap-2">
-                              <span className="text-4xl font-bold">{formatCurrency(plan.price)}</span>
-                              <span className="text-muted-foreground">/ {plan.durationDays % 30 === 0 && plan.durationDays > 0 ? (plan.durationDays / 30 === 1 ? 'mês' : `${plan.durationDays / 30} meses`) : `${plan.durationDays} dias`}</span>
-                          </div>
-                          <ul className="grid gap-2 text-sm flex-1">
-                            {plan.features.map((feature) => (
-                                <li key={feature} className="flex items-center gap-2">
-                                    <Check className="h-4 w-4 text-primary" />
-                                    {feature}
-                                </li>
-                            ))}
-                          </ul>
-                      </CardContent>
-                      <CardFooter>
-                           <Button asChild className="w-full">
-                              <Link href="/register">Iniciar Teste Gratuito</Link>
-                          </Button>
-                      </CardFooter>
-                  </Card>
-                ))
-              ) : (
-                 <div className="col-span-full text-center text-muted-foreground">
-                    <p>Nossos planos de assinatura serão divulgados em breve.</p>
-                 </div>
-              )}
+          ) : plans.length > 0 ? (
+            <Pricing
+              plans={plans}
+              title="Preços Simples e Transparentes"
+              description="Escolha o plano que melhor se adapta às suas necessidades.\nCancele quando quiser."
+            />
+          ) : (
+            <div className="container py-20 text-center text-muted-foreground">
+              <p>Nossos planos de assinatura serão divulgados em breve.</p>
             </div>
-          </div>
+          )}
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">

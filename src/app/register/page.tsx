@@ -25,8 +25,9 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Checkbox } from "@/components/ui/checkbox"
 import { useToast } from "@/hooks/use-toast"
-import { ClientRegisterSchema } from "@/lib/schemas"
+import { PreRegisterSchema } from "@/lib/schemas"
 import { registerClient } from "./actions"
 
 export default function RegisterPage() {
@@ -34,28 +35,30 @@ export default function RegisterPage() {
   const { toast } = useToast()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const form = useForm<z.infer<typeof ClientRegisterSchema>>({
-    resolver: zodResolver(ClientRegisterSchema),
+  const form = useForm<z.infer<typeof PreRegisterSchema>>({
+    resolver: zodResolver(PreRegisterSchema),
     defaultValues: {
-      name: "",
-      subdomain: "",
-      cpfCnpj: "",
+      firstName: "",
+      lastName: "",
       email: "",
-      password: "",
+      birthDate: "",
+      acceptedLegal: false,
+      over18: false,
     },
   })
 
-  async function onSubmit(values: z.infer<typeof ClientRegisterSchema>) {
+  async function onSubmit(values: z.infer<typeof PreRegisterSchema>) {
     setIsSubmitting(true);
     try {
       const result = await registerClient(values);
       if (result.success) {
         toast({
-          title: 'Sucesso!',
+          title: 'Verifique seu email!',
           description: result.message,
         });
-        // Redirect to login after a short delay to allow the user to read the toast
-        setTimeout(() => router.push('/login'), 2000);
+        // Redirect to login or a "check email" page. For now, login seems appropriate or stay here.
+        // Actually, maybe a specific "check email" page would be better, but login is fine.
+        setTimeout(() => router.push('/login'), 3000);
       } else {
         toast({
           variant: 'destructive',
@@ -76,97 +79,131 @@ export default function RegisterPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background p-4 dark">
-        <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md">
         <CardHeader className="text-center space-y-2">
-            <CardTitle className="text-2xl font-bold">Criar sua Conta</CardTitle>
-            <CardDescription>Comece seus 30 dias de teste gratuito.</CardDescription>
+          <CardTitle className="text-2xl font-bold">Criar sua Conta</CardTitle>
+          <CardDescription>Comece seus 30 dias de teste gratuito.</CardDescription>
         </CardHeader>
         <CardContent>
-            <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                     <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                          <FormItem>
-                              <FormLabel>Nome Completo</FormLabel>
-                              <FormControl>
-                                  <Input placeholder="Seu nome completo" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                          </FormItem>
-                      )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="subdomain"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Seu Subdomínio</FormLabel>
-                            <FormControl>
-                                <div className="flex items-center">
-                                    <Input placeholder="sua-loja" className="rounded-r-none" {...field}/>
-                                    <span className="inline-flex items-center px-3 text-sm text-muted-foreground border border-l-0 rounded-r-md h-10">
-                                        .meubot.com
-                                    </span>
-                                </div>
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="cpfCnpj"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>CPF ou CNPJ</FormLabel>
-                            <FormControl>
-                                <Input placeholder="Seu CPF ou CNPJ para o teste" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="email"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Email</FormLabel>
-                            <FormControl>
-                                <Input type="email" placeholder="seu@email.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Senha</FormLabel>
-                            <FormControl>
-                                <Input type="password" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                    <Button type="submit" className="w-full" disabled={isSubmitting}>
-                        {isSubmitting ? <Loader2 className="animate-spin" /> : "Criar Conta"}
-                    </Button>
-                    <div className="mt-4 text-center text-sm">
-                        Já tem uma conta?{" "}
-                        <Link href="/login" className="underline">
-                            Faça login
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Seu nome" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sobrenome</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Seu sobrenome" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="seu@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birthDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Data de Nascimento</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="acceptedLegal"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal">
+                        Li e concordo com os{" "}
+                        <Link href="/terms" target="_blank" className="underline hover:text-primary">
+                          Termos de Uso
+                        </Link>{" "}
+                        e{" "}
+                        <Link href="/privacy" target="_blank" className="underline hover:text-primary">
+                          Política de Privacidade
                         </Link>
+                      </FormLabel>
+                      <FormMessage />
                     </div>
-                </form>
-            </Form>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="over18"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-sm font-normal">
+                        Confirmo que sou maior de 18 anos.
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
+                {isSubmitting ? <Loader2 className="animate-spin" /> : "Continuar"}
+              </Button>
+              <div className="mt-4 text-center text-sm">
+                Já tem uma conta?{" "}
+                <Link href="/login" className="underline">
+                  Faça login
+                </Link>
+              </div>
+            </form>
+          </Form>
         </CardContent>
-        </Card>
+      </Card>
     </main>
   );
 }

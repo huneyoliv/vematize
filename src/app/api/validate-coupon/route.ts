@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validateCoupon } from '@/app/krov/coupons/actions';
+import { validateCoupon } from '@/app/admins/coupons/actions';
 
 export async function POST(request: NextRequest) {
   try {
