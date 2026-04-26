@@ -14,11 +14,19 @@ async function bootstrap() {
   app.use(helmet());
 
   const domain = config.get('DOMAIN', 'localhost');
-  const isDev = domain === 'localhost' || config.get('NODE_ENV') === 'development';
+  const isDev = config.get('NODE_ENV') === 'development';
 
-  const allowedOrigins = isDev
-    ? ['http://localhost:3000', 'http://localhost:5173']
-    : [`https://${domain}`, `https://www.${domain}`];
+  const allowedOrigins = [
+    `https://${domain}`,
+    `https://www.${domain}`,
+    `http://${domain}`,
+    `http://www.${domain}`,
+  ];
+
+  if (isDev || domain === 'localhost') {
+    allowedOrigins.push('http://localhost:3000');
+    allowedOrigins.push('http://localhost:5173');
+  }
 
   app.enableCors({
     origin: allowedOrigins,

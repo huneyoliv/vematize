@@ -134,6 +134,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
   const [domainValue, setDomainValue] = useState('localhost');
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
+  const isMp = gateway === 'mercadopago';
   const mode = isMp ? 'production' : (localConfig.mode || 'sandbox');
 
   useEffect(() => {
@@ -205,7 +206,6 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
   const certField = mode === 'production' ? 'production_certificate_base64' : 'sandbox_certificate_base64';
   const hasCert = !!localConfig[certField];
 
-  const isMp = gateway === 'mercadopago';
   const title = isMp ? 'Mercado Pago' : 'Efí Bank';
   const modeLabel = isMp
     ? 'Produção'

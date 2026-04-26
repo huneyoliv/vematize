@@ -23,8 +23,7 @@ export class TelegramFlowService {
 
   private escapeMarkdown(text: string): string {
     if (!text) return '';
-    const chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-    return chars.reduce((acc, char) => acc.replace(new RegExp('\\\\' + char, 'g'), '\\\\' + char), text);
+    return text.replace(/([_*\[\]()~`>#\+\-=|{}.!])/g, '\\$1');
   }
 
   private replacePlaceholders(text: string, from: any): string {

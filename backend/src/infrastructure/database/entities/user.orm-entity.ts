@@ -5,7 +5,15 @@ export class UserEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ nullable: true, unique: true })
+  @Column({ 
+    type: 'bigint', 
+    nullable: true, 
+    unique: true,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => value ? parseInt(value, 10) : null,
+    }
+  })
   telegramId: number;
 
   @Column({ nullable: true })

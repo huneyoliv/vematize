@@ -37,11 +37,6 @@ function getInteractionsUrl(token?: string) {
   return `${base}/api/discord/interactions/${token}`;
 }
 
-function getTelegramWebhookUrl() {
-  const domain = import.meta.env.VITE_DOMAIN || 'localhost';
-  if (domain === 'localhost') return 'http://localhost:3001/api/telegram/webhook';
-  return `https://api.${domain}/api/telegram/webhook`;
-}
 
 export default function BotsPage() {
   const { platform } = useParams<{ platform: string }>();
@@ -206,7 +201,6 @@ export default function BotsPage() {
 
   const Icon = info.icon;
   const interactionsUrl = getInteractionsUrl(config?.interactionsToken);
-  const telegramWebhookUrl = getTelegramWebhookUrl();
   const isConnected = !!config?.botToken;
 
   const tabs = platform === 'discord'
@@ -443,36 +437,6 @@ export default function BotsPage() {
               </div>
             )}
 
-            {platform === 'telegram' && isConnected && (
-              <div className="card" style={{
-                maxWidth: 700,
-                borderColor: 'rgba(0,136,204,0.3)',
-                background: 'rgba(0,136,204,0.03)',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                  <Shield size={18} style={{ color: '#0088cc' }} />
-                  <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>URL do Webhook</h3>
-                  <span className="badge badge-success" style={{ fontSize: 11 }}>Configurado Automaticamente</span>
-                </div>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
-                  Em produção, o bot usa webhook. Em desenvolvimento, usa polling automaticamente.
-                </p>
-
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{
-                    flex: 1, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
-                    background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                    fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all',
-                  }}>
-                    {telegramWebhookUrl}
-                  </div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => copyUrl(telegramWebhookUrl)}
-                    style={{ padding: '8px 10px' }}>
-                    {copied ? <CheckCircle size={16} style={{ color: 'var(--success)' }} /> : <Copy size={16} />}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         )}
 
