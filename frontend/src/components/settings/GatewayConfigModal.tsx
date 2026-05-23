@@ -195,7 +195,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
   const handleWebhook = async () => {
     setWebhookLoading(true);
     try {
-      const webhookUrl = `https://api.${domainValue}/api/efi/webhook`;
+      const webhookUrl = `https://api.${domainValue}/api/webhook/efi`;
       const res = await api.post('/api/settings/efi-webhook', { webhookUrl });
       showMsg(res.data.message, 'success');
     } catch (err: any) {
@@ -213,7 +213,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
     : (mode === 'production' ? 'Produção' : 'Homologação');
 
   const mpWebhookUrl = !isLocalhost ? `https://api.${domainValue}/api/webhook/mercadopago` : '';
-  const efiWebhookUrl = !isLocalhost ? `https://api.${domainValue}/api/efi/webhook` : '';
+  const efiWebhookUrl = !isLocalhost ? `https://api.${domainValue}/api/webhook/efi` : '';
 
   return (
     <div className="dialog-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
