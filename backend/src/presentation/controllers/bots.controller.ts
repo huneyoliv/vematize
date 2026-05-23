@@ -42,10 +42,9 @@ export class BotsController {
 
     if (platform === 'discord' && data.discordPanels) {
       try {
-        console.log('[Debug] Sincronizando paineis do Discord no BotsController');
         data.discordPanels = await this.discordPanelService.syncPanels(data.discordPanels);
       } catch (error: any) {
-        console.error('[Debug] Erro ao sincronizar paineis do Discord:', error?.message);
+        console.error('[Discord] Erro ao sincronizar paineis:', error?.message);
       }
     }
 

@@ -20,24 +20,15 @@ export class WebhookService {
   ) {}
 
   async processMercadoPago(body: any, headers?: any, query?: any): Promise<void> {
-    console.log('[Debug] processMercadoPago acionado');
-
     const xSignature = headers?.['x-signature'];
     const xRequestId = headers?.['x-request-id'];
     const settings = await this.settingsRepo.get();
     const secret = settings?.mercadopagoConfig?.webhook_secret;
 
     if (xSignature || xRequestId || secret) {
-      if (!secret) {
-        console.log('[Debug] Erro MP: webhook_secret nao configurado');
-        throw new Error('webhook_secret nao configurado');
-      }
-      if (!xSignature || !xRequestId) {
-        console.log('[Debug] Erro MP: Assinatura ou Request ID ausente');
-        throw new Error('Assinatura do webhook ausente');
-      }
+      if (!secret) throw new Error('webhook_secret nao configurado');
+      if (!xSignature || !xRequestId) throw new Error('Assinatura do webhook ausente');
 
-      console.log('[Debug] Validando assinatura do MercadoPago');
       const parts = xSignature.split(',');
       let ts = '';
       let v1 = '';
@@ -47,18 +38,11 @@ export class WebhookService {
         if (key === 'v1') v1 = val;
       }
       const dataId = query?.['data.id'] || body?.data?.id || body?.id;
-      if (!ts || !v1 || !dataId) {
-        console.log('[Debug] Erro MP: Campos da assinatura ausentes');
-        throw new Error('Assinatura do webhook malformada');
-      }
+      if (!ts || !v1 || !dataId) throw new Error('Assinatura do webhook malformada');
 
       const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
       const hash = createHmac('sha256', secret).update(manifest).digest('hex');
-      if (hash !== v1) {
-        console.log('[Debug] Assinatura do webhook do MercadoPago invalida');
-        throw new Error('Assinatura do webhook inválida');
-      }
-      console.log('[Debug] Assinatura do webhook MercadoPago validada com sucesso');
+      if (hash !== v1) throw new Error('Assinatura do webhook inválida');
     }
 
     if (body.type !== 'payment' && body.topic !== 'payment') {
@@ -109,12 +93,9 @@ export class WebhookService {
   }
 
   async processEfi(body: any, headers?: any): Promise<void> {
-    console.log('[Debug] processEfi acionado');
-
     if (headers) {
       const clientVerify = headers['x-ssl-client-verify'] || headers['ssl-client-verify'];
       if (clientVerify && clientVerify !== 'SUCCESS') {
-        console.log('[Debug] Validacao mTLS da Efi falhou no proxy reverso');
         throw new Error('Falha na validação mTLS da Efí');
       }
     }

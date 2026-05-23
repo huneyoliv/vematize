@@ -17,7 +17,6 @@ function getKey(): Buffer {
 
 export function encrypt(text: string): string {
   if (!text) return text;
-  console.log('[Debug] Criptografando valor');
   const key = getKey();
   const iv = randomBytes(IV_LENGTH);
   const cipher = createCipheriv(ALGORITHM, key, iv);
@@ -30,11 +29,7 @@ export function encrypt(text: string): string {
 export function decrypt(encryptedText: string): string {
   if (!encryptedText) return encryptedText;
   const parts = encryptedText.split(':');
-  if (parts.length !== 3) {
-    console.log('[Debug] Valor sem criptografia. Retornando original.');
-    return encryptedText;
-  }
-  console.log('[Debug] Descriptografando valor');
+  if (parts.length !== 3) return encryptedText;
   try {
     const key = getKey();
     const [ivHex, tagHex, encryptedHex] = parts;
@@ -46,7 +41,7 @@ export function decrypt(encryptedText: string): string {
     decrypted += decipher.final('utf8');
     return decrypted;
   } catch (error: any) {
-    console.error('[Debug] Erro ao descriptografar:', error?.message);
+    console.error('[Encryptor] Erro ao descriptografar:', error?.message);
     return encryptedText;
   }
 }

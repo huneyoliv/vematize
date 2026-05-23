@@ -8,6 +8,10 @@ import { CouponRepository } from '../../infrastructure/database/repositories/cou
 import { SettingsRepository } from '../../infrastructure/database/repositories/settings.repository';
 import { PaymentGatewayService } from './payment-gateway.service';
 
+jest.mock('qrcode', () => ({
+  toDataURL: jest.fn().mockResolvedValue('data:image/png;base64,mockqr'),
+}));
+
 const mockUser = { id: 'user-1', name: 'Test' };
 const mockProduct = { id: 'prod-1', name: 'Produto', price: 100, stock: null };
 const mockSale = { id: 'sale-1', status: 'pending' };
@@ -50,6 +54,7 @@ describe('CheckoutService', () => {
     saleRepo.findById.mockResolvedValue(mockSale as any);
     saleRepo.findByCouponAndUser.mockResolvedValue(null);
     paymentGateway.createCharge.mockResolvedValue(mockCharge as any);
+    settingsRepo.get.mockResolvedValue(null);
 
     jest.useFakeTimers();
   });
@@ -120,9 +125,7 @@ describe('CheckoutService', () => {
 
     expect(onExpired).not.toHaveBeenCalled();
 
-    jest.advanceTimersByTime(30 * 60 * 1000);
-
-    await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(30 * 60 * 1000);
 
     expect(saleRepo.update).toHaveBeenCalledWith('sale-1', { status: 'cancelled' });
   });

@@ -45,7 +45,6 @@ export class SettingsRepository {
   ) {}
 
   async get(): Promise<SettingsEntity | null> {
-    console.log('[Debug] Buscando configuracoes no settings');
     const all = await this.repo.find();
     const settings = all[0] || null;
     if (settings) {
@@ -56,7 +55,6 @@ export class SettingsRepository {
   }
 
   async upsert(data: Partial<SettingsEntity>): Promise<SettingsEntity> {
-    console.log('[Debug] Salvando configuracoes no settings');
     const encryptedData = { ...data };
     if (encryptedData.mercadopagoConfig) {
       encryptedData.mercadopagoConfig = encryptConfig(encryptedData.mercadopagoConfig, MP_SENSITIVE_FIELDS);
