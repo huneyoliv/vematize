@@ -333,10 +333,10 @@ export class TelegramFlowService {
         couponCode: user.interactionData?.appliedCoupon,
       });
 
-      let msg = `✅ *Pagamento Gerado\\!*\n\n`;
+      let msg = `✅ <b>Pagamento Gerado!</b>\n\n`;
       msg += `Use o código abaixo para pagar via Pix:\n\n`;
-      msg += `\`\`\`\n${result.qrCode}\n\`\`\`\n\n`;
-      msg += `⏰ Expira em 30 minutos\\.`;
+      msg += `<code>${result.qrCode}</code>\n\n`;
+      msg += `⏰ Expira em 30 minutos.`;
 
       const kb: any[][] = [];
       if (result.ticketUrl) {
@@ -345,7 +345,7 @@ export class TelegramFlowService {
       kb.push([{ text: '⬅️ Voltar ao Início', callback_data: 'MAIN_MENU' }]);
 
       await ctx.editMessageText(msg, {
-        parse_mode: 'MarkdownV2',
+        parse_mode: 'HTML',
         reply_markup: { inline_keyboard: kb },
       });
     } catch (error: any) {
