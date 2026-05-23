@@ -15,10 +15,24 @@ export class SaleEntity {
   @Column()
   userId: string;
 
-  @Column({ nullable: true })
+  @Column({ 
+    type: 'bigint', 
+    nullable: true,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => value ? parseInt(value, 10) : null,
+    }
+  })
   telegramChatId: number;
 
-  @Column({ nullable: true })
+  @Column({ 
+    type: 'bigint', 
+    nullable: true,
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => value ? parseInt(value, 10) : null,
+    }
+  })
   telegramMessageId: number;
 
   @Column({ nullable: true })
