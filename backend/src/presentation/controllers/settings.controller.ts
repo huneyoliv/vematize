@@ -16,39 +16,73 @@ export class SettingsController {
 
   @Put()
   async update(@Body() dto: UpdateSettingsDto) {
+    console.log('[Debug] Iniciando atualizacao de configuracoes', { dto });
     const current = await this.settingsRepo.get();
     const mpConfig = dto.mercadopagoConfig !== undefined ? dto.mercadopagoConfig : current?.mercadopagoConfig;
     const efiConfig = dto.efiConfig !== undefined ? dto.efiConfig : current?.efiConfig;
 
     const isMpConfigured = () => {
-      if (!mpConfig) return false;
+      console.log('[Debug] Verificando se Mercado Pago esta configurado', { mpConfig });
+      if (!mpConfig) {
+        console.log('[Debug] Mercado Pago nao configurado: mpConfig e nulo');
+        return false;
+      }
       const mode = mpConfig.mode || 'production';
-      if (mode === 'production' && mpConfig.production_access_token) return true;
-      if (mpConfig.sandbox_access_token) return true;
+      console.log('[Debug] Modo de operacao do Mercado Pago:', { mode });
+      if (mode === 'production' && mpConfig.production_access_token) {
+        console.log('[Debug] Mercado Pago configurado com production_access_token');
+        return true;
+      }
+      if (mpConfig.sandbox_access_token) {
+        console.log('[Debug] Mercado Pago configurado com sandbox_access_token');
+        return true;
+      }
+      if (mpConfig.production_access_token) {
+        console.log('[Debug] Mercado Pago configurado com production_access_token (fallback)');
+        return true;
+      }
+      console.log('[Debug] Mercado Pago nao configurado: nenhuma credencial encontrada');
       return false;
     };
 
     const isEfiConfigured = () => {
-      if (!efiConfig) return false;
-      if (efiConfig.mode === 'production' && efiConfig.production_client_id) return true;
-      if (efiConfig.sandbox_client_id) return true;
+      console.log('[Debug] Verificando se Efi Bank esta configurado', { efiConfig });
+      if (!efiConfig) {
+        console.log('[Debug] Efi Bank nao configurado: efiConfig e nulo');
+        return false;
+      }
+      console.log('[Debug] Modo de operacao do Efi Bank:', { mode: efiConfig.mode });
+      if (efiConfig.mode === 'production' && efiConfig.production_client_id) {
+        console.log('[Debug] Efi Bank configurado com production_client_id');
+        return true;
+      }
+      if (efiConfig.sandbox_client_id) {
+        console.log('[Debug] Efi Bank configurado com sandbox_client_id');
+        return true;
+      }
+      console.log('[Debug] Efi Bank nao configurado: nenhuma credencial encontrada');
       return false;
     };
 
     if (dto.activeGateway === 'mercadopago' && !isMpConfigured()) {
+      console.log('[Debug] Rejeitando ativacao: activeGateway Mercado Pago nao configurado');
       throw new BadRequestException('Configure as credenciais do Mercado Pago primeiro.');
     }
     if (dto.activeGateway === 'efi' && !isEfiConfigured()) {
+      console.log('[Debug] Rejeitando ativacao: activeGateway Efi Bank nao configurado');
       throw new BadRequestException('Configure as credenciais do Efí Bank primeiro.');
     }
 
     if (dto.preferredPixGateway === 'mercadopago' && !isMpConfigured()) {
+      console.log('[Debug] Rejeitando ativacao: preferredPixGateway Mercado Pago nao configurado');
       throw new BadRequestException('Configure as credenciais do Mercado Pago primeiro.');
     }
     if (dto.preferredPixGateway === 'efi' && !isEfiConfigured()) {
+      console.log('[Debug] Rejeitando ativacao: preferredPixGateway Efi Bank nao configurado');
       throw new BadRequestException('Configure as credenciais do Efí Bank primeiro.');
     }
 
+    console.log('[Debug] Salvando configuracoes via repository');
     return this.settingsRepo.upsert(dto as any);
   }
 

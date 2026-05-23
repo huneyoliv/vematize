@@ -3,6 +3,7 @@ import { Telegraf } from 'telegraf';
 import { BotConfigRepository } from '../../infrastructure/database/repositories/bot-config.repository';
 import { UserRepository } from '../../infrastructure/database/repositories/user.repository';
 import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
+import { CouponRepository } from '../../infrastructure/database/repositories/coupon.repository';
 import { CheckoutService } from '../services/checkout.service';
 import type { BotFlow, BotStep, BotButton } from '../../domain/entities/bot-config.entity';
 
@@ -15,6 +16,7 @@ export class TelegramFlowService {
     private readonly userRepo: UserRepository,
     private readonly productRepo: ProductRepository,
     private readonly checkoutService: CheckoutService,
+    private readonly couponRepo: CouponRepository,
   ) {}
 
   setBotInstance(bot: Telegraf) {
@@ -183,17 +185,18 @@ export class TelegramFlowService {
       }
 
       case 'CART_APPLY_COUPON': {
+        await ctx.deleteMessage().catch(() => {});
+        const sentMessage = await ctx.reply('🎟️ *Digite o código do cupom:*', {
+          parse_mode: 'MarkdownV2',
+          reply_markup: {
+            inline_keyboard: [[{ text: '❌ Cancelar', callback_data: `CANCEL_COUPON_INPUT:${payload}` }]],
+          },
+        });
         await this.userRepo.update(user.id, {
           interactionState: 'WAITING_COUPON',
           interactionData: {
             productId: payload,
-            messageId: ctx.callbackQuery.message?.message_id,
-          },
-        });
-        await ctx.reply('🎟️ *Digite o código do cupom:*', {
-          parse_mode: 'MarkdownV2',
-          reply_markup: {
-            inline_keyboard: [[{ text: '❌ Cancelar', callback_data: `CANCEL_COUPON_INPUT:${payload}` }]],
+            couponPromptMessageId: sentMessage.message_id,
           },
         });
         await ctx.answerCbQuery('Aguardando cupom...');
@@ -201,12 +204,24 @@ export class TelegramFlowService {
       }
 
       case 'CANCEL_COUPON_INPUT': {
+        await ctx.deleteMessage().catch(() => {});
         await this.userRepo.update(user.id, {
           interactionState: undefined,
-          interactionData: undefined,
+          interactionData: {},
         });
-        await ctx.deleteMessage().catch(() => {});
         await ctx.answerCbQuery('Cancelado.');
+        await this.showProduct(ctx, payload, user, config, true);
+        break;
+      }
+
+      case 'REMOVE_COUPON': {
+        await this.userRepo.update(user.id, {
+          interactionState: undefined,
+          interactionData: {},
+        });
+        user.interactionData = {};
+        await ctx.answerCbQuery('Cupom removido.');
+        await this.showProduct(ctx, payload, user, config);
         break;
       }
 
@@ -220,43 +235,94 @@ export class TelegramFlowService {
     }
   }
 
-  private async showProduct(ctx: any, productId: string, user: any, config: any) {
+  private async showProduct(ctx: any, productId: string, user: any, config: any, isNewMessage = false) {
     const product = await this.productRepo.findById(productId);
     if (!product) {
-      await ctx.editMessageText('❌ Produto não disponível.');
+      if (ctx.callbackQuery && !isNewMessage) {
+        await ctx.editMessageText('❌ Produto não disponível.').catch(() => {});
+      } else {
+        await ctx.reply('❌ Produto não disponível.').catch(() => {});
+      }
       return;
     }
 
     const isOfferActive = product.discountPrice && product.offerExpiresAt && new Date(product.offerExpiresAt) > new Date();
     const price = isOfferActive ? Number(product.discountPrice) : Number(product.price);
 
+    let finalPrice = price;
+    let couponInfo = '';
+    const appliedCoupon = user.interactionData?.appliedCoupon;
+
+    if (appliedCoupon) {
+      const coupon = await this.couponRepo.findByCode(appliedCoupon);
+      if (coupon && coupon.isActive) {
+        const notExpired = !coupon.expiresAt || new Date(coupon.expiresAt) > new Date();
+        const hasUses = !coupon.maxUses || coupon.currentUses < coupon.maxUses;
+        const isApplicable = !coupon.applicableProducts?.length || coupon.applicableProducts.includes(product.id);
+
+        if (notExpired && hasUses && isApplicable) {
+          const discount = coupon.type === 'percentage' ? (price * coupon.value) / 100 : coupon.value;
+          finalPrice = price - discount;
+          if (finalPrice < 0) finalPrice = 0;
+          couponInfo = `\n🎫 *Cupom:* \`${appliedCoupon}\` aplicado \\(\\-R\\$ ${discount.toFixed(2).replace('.', ',')}\\)\n`;
+        }
+      }
+    }
+
     let msg = `*${this.escapeMarkdown(product.name)}*\n\n${this.escapeMarkdown(product.description || '')}\n\n`;
 
     if (Number(product.price) === 0) {
       msg += `*Preço: Grátis\\!*`;
       const kb = { inline_keyboard: [[{ text: '✅ Obter Agora', callback_data: `ACQUIRE_PRODUCT:${product.id}` }]] };
-      await ctx.editMessageText(msg, { parse_mode: 'MarkdownV2', reply_markup: kb });
+      if (ctx.callbackQuery && !isNewMessage) {
+        await ctx.editMessageText(msg, { parse_mode: 'MarkdownV2', reply_markup: kb }).catch(() => {});
+      } else {
+        await ctx.reply(msg, { parse_mode: 'MarkdownV2', reply_markup: kb }).catch(() => {});
+      }
       return;
     }
 
-    const priceStr = `*Preço: R\\$ ${price.toFixed(2).replace('.', ',')}*`;
+    const priceStr = `*Preço: R\\$ ${finalPrice.toFixed(2).replace('.', ',')}*`;
+    const originalPriceStr = appliedCoupon && finalPrice !== price ? ` \\(de ~R\\$ ${price.toFixed(2).replace('.', ',')}~\\)` : '';
     const originalStr = isOfferActive ? ` \\(de ~R\\$ ${Number(product.price).toFixed(2).replace('.', ',')}~\\)` : '';
-    msg += `${priceStr}${originalStr}\n\nEscolha como deseja pagar:`;
+    msg += `${priceStr}${originalPriceStr}${originalStr}\n${couponInfo}\nEscolha como deseja pagar:`;
 
     const keyboardRows: any[][] = [
       [{ text: '💲 Pagar com PIX', callback_data: `BUY_WITH_METHOD:pix:auto:${product.id}` }],
     ];
-    keyboardRows.push([{ text: '🎫 Usar Cupom', callback_data: `CART_APPLY_COUPON:${product.id}` }]);
+    if (appliedCoupon) {
+      keyboardRows.push([{ text: '🗑️ Remover Cupom', callback_data: `REMOVE_COUPON:${product.id}` }]);
+    } else {
+      keyboardRows.push([{ text: '🎫 Usar Cupom', callback_data: `CART_APPLY_COUPON:${product.id}` }]);
+    }
     keyboardRows.push([{ text: '⬅️ Voltar ao Início', callback_data: 'MAIN_MENU' }]);
 
-    await ctx.editMessageText(msg, {
-      parse_mode: 'MarkdownV2',
-      reply_markup: { inline_keyboard: keyboardRows },
-    });
+    try {
+      if (ctx.callbackQuery && !isNewMessage) {
+        await ctx.editMessageText(msg, {
+          parse_mode: 'MarkdownV2',
+          reply_markup: { inline_keyboard: keyboardRows },
+        });
+      } else {
+        await ctx.reply(msg, {
+          parse_mode: 'MarkdownV2',
+          reply_markup: { inline_keyboard: keyboardRows },
+        });
+      }
+    } catch {
+      await ctx.reply(msg, {
+        parse_mode: 'MarkdownV2',
+        reply_markup: { inline_keyboard: keyboardRows },
+      });
+    }
   }
 
   private async handleBuy(ctx: any, productId: string, user: any) {
-    await ctx.editMessageText('⏳ Preparando seu pagamento...');
+    if (ctx.callbackQuery) {
+      await ctx.editMessageText('⏳ Preparando seu pagamento...').catch(() => {});
+    } else {
+      await ctx.reply('⏳ Preparando seu pagamento...').catch(() => {});
+    }
 
     try {
       const result = await this.checkoutService.createCheckout({
@@ -264,6 +330,7 @@ export class TelegramFlowService {
         userId: user.id,
         platform: 'telegram',
         telegramChatId: ctx.chat.id,
+        couponCode: user.interactionData?.appliedCoupon,
       });
 
       let msg = `✅ *Pagamento Gerado\\!*\n\n`;
@@ -305,13 +372,68 @@ export class TelegramFlowService {
   }
 
   private async handleCouponInput(ctx: any, user: any, messageText: string) {
+    await ctx.deleteMessage().catch(() => {});
     const couponCode = messageText.trim().toUpperCase();
+    const productId = user.interactionData?.productId;
+    const couponPromptMessageId = user.interactionData?.couponPromptMessageId;
+
+    const coupon = await this.couponRepo.findByCode(couponCode);
+    let isValid = true;
+    let errorMessage = '';
+
+    if (!coupon || !coupon.isActive) {
+      isValid = false;
+      errorMessage = '❌ *Cupom inválido ou inativo\\!*';
+    } else {
+      const notExpired = !coupon.expiresAt || new Date(coupon.expiresAt) > new Date();
+      const hasUses = !coupon.maxUses || coupon.currentUses < coupon.maxUses;
+      const isApplicable = !coupon.applicableProducts?.length || coupon.applicableProducts.includes(productId);
+
+      if (!notExpired) {
+        isValid = false;
+        errorMessage = '❌ *Cupom expirado\\!*';
+      } else if (!hasUses) {
+        isValid = false;
+        errorMessage = '❌ *Limite de usos atingido\\!*';
+      } else if (!isApplicable) {
+        isValid = false;
+        errorMessage = '❌ *Cupom não aplicável a este produto\\!*';
+      }
+    }
+
+    if (!isValid) {
+      if (couponPromptMessageId) {
+        await ctx.telegram.editMessageText(
+          ctx.chat.id,
+          couponPromptMessageId,
+          undefined,
+          `${errorMessage}\n\n🎟️ *Digite o código do cupom:*`,
+          {
+            parse_mode: 'MarkdownV2',
+            reply_markup: {
+              inline_keyboard: [[{ text: '❌ Cancelar', callback_data: `CANCEL_COUPON_INPUT:${productId}` }]],
+            },
+          }
+        ).catch(() => {});
+      }
+      return;
+    }
+
+    if (couponPromptMessageId) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, couponPromptMessageId).catch(() => {});
+    }
+
     await this.userRepo.update(user.id, {
       interactionState: undefined,
-      interactionData: undefined,
+      interactionData: {
+        appliedCoupon: couponCode,
+      },
     });
-    await ctx.deleteMessage().catch(() => {});
-    await ctx.reply(`✅ Cupom *${couponCode}* aplicado\\!`, { parse_mode: 'MarkdownV2' });
+
+    user.interactionData = { appliedCoupon: couponCode };
+
+    const config = await this.botConfigRepo.findByPlatform('telegram');
+    await this.showProduct(ctx, productId, user, config, true);
   }
 
   private async showProfile(ctx: any, user: any, flows: BotFlow[]) {
