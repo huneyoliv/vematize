@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Trash2 } from 'lucide-react';
+import PageLoading from '../layout/PageLoading';
 
 interface User {
   id: string;
@@ -50,7 +51,7 @@ export default function UsersPage() {
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+        <PageLoading showTitle={false} table />
       ) : users.length === 0 ? (
         <div className="empty-state">
           <h3>Nenhum usuário encontrado</h3>
@@ -70,7 +71,7 @@ export default function UsersPage() {
             <tbody>
               {users.map((u) => (
                 <tr key={u.id}>
-                  <td style={{ fontWeight: 600 }}>{u.name || u.username || u.email || 'Sem nome'}</td>
+                  <td className="cell-strong">{u.name || u.username || u.email || 'Sem nome'}</td>
                   <td>{u.telegramId ? 'Telegram' : u.discordId ? 'Discord' : 'N/A'}</td>
                   <td>{getStateBadge(u.state)}</td>
                   <td>

@@ -45,31 +45,37 @@ export class SaleRepository {
   }
 
   async sumApprovedRevenue(): Promise<number> {
+    console.log('[Debug] Calculando receita total de vendas aprovadas');
     const result = await this.repo
       .createQueryBuilder('sale')
-      .select('COALESCE(SUM(CAST(sale.quantity AS decimal) * 1), 0)', 'total')
+      .select('COALESCE(SUM(sale.totalPrice), 0)', 'total')
       .where('sale.status = :status', { status: 'approved' })
       .getRawOne();
+    console.log(`[Debug] Receita total calculada: ${result?.total}`);
     return parseFloat(result?.total || '0');
   }
 
   async findByPaymentId(paymentId: string): Promise<SaleEntity | null> {
-    const sales = await this.repo.find({
-      where: { paymentGateway: 'mercadopago' },
-      order: { createdAt: 'DESC' },
-    });
-    return sales.find(s => s.paymentDetails?.paymentId === paymentId) || null;
+    console.log(`[Debug] Buscando venda por paymentId: ${paymentId}`);
+    return this.repo
+      .createQueryBuilder('sale')
+      .where('sale.paymentGateway = :gateway', { gateway: 'mercadopago' })
+      .andWhere("sale.paymentDetails->>'paymentId' = :paymentId", { paymentId })
+      .getOne();
   }
 
   async findByExternalReference(saleId: string): Promise<SaleEntity | null> {
+    console.log(`[Debug] Buscando venda por ID externo: ${saleId}`);
     return this.repo.findOne({ where: { id: saleId } });
   }
 
   async findByTxid(txid: string): Promise<SaleEntity | null> {
-    const sales = await this.repo.find({
-      where: { paymentGateway: 'efi' },
-      order: { createdAt: 'DESC' },
-    });
-    return sales.find(s => s.paymentDetails?.txid === txid) || null;
+    console.log(`[Debug] Buscando venda por txid: ${txid}`);
+    return this.repo
+      .createQueryBuilder('sale')
+      .where('sale.paymentGateway = :gateway', { gateway: 'efi' })
+      .andWhere("sale.paymentDetails->>'txid' = :txid", { txid })
+      .getOne();
   }
 }
+

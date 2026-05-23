@@ -58,12 +58,17 @@ export class TelegramBotService implements OnModuleInit, OnModuleDestroy {
     const isDev = domain === 'localhost' || process.env.NODE_ENV === 'development';
 
     if (isDev) {
+      console.log('[Debug] Modo dev detectado. Iniciando Telegram em polling');
       this.bot.launch();
-      console.log('[Telegram] Bot iniciado em modo polling (dev)');
+      console.log('[Debug] Bot Telegram iniciado em polling (dev)');
     } else {
       const webhookUrl = `https://${domain}/api/telegram/webhook`;
-      await this.bot.telegram.setWebhook(webhookUrl);
-      console.log(`[Telegram] Webhook configurado: ${webhookUrl}`);
+      const secretToken = process.env.TELEGRAM_SECRET_TOKEN || process.env.JWT_SECRET;
+      console.log('[Debug] Configurando webhook do Telegram', { url: webhookUrl });
+      await this.bot.telegram.setWebhook(webhookUrl, {
+        secret_token: secretToken,
+      });
+      console.log('[Debug] Webhook do Telegram configurado');
     }
   }
 

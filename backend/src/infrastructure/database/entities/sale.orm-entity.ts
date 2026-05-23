@@ -1,6 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
 
 @Entity('sales')
+@Index(['userId'])
+@Index(['productId'])
+@Index(['status'])
+
 export class SaleEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;

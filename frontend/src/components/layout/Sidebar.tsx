@@ -9,6 +9,7 @@ import {
   Tag,
   Settings,
   LogOut,
+  Zap,
 } from 'lucide-react';
 
 const navItems = [
@@ -33,7 +34,10 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo">
-        <span>⚡ Vematize</span>
+        <div className="sidebar-logo-icon" aria-hidden>
+          <Zap size={20} strokeWidth={2.5} />
+        </div>
+        <span>Vematize</span>
       </div>
       <nav className="sidebar-nav">
         {navItems.map((item) => (
@@ -48,10 +52,8 @@ export default function Sidebar() {
         ))}
       </nav>
       <div className="sidebar-footer">
-        <div style={{ padding: '8px 12px', fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>
-          {user?.username}
-        </div>
-        <button className="sidebar-link" onClick={handleLogout} style={{ width: '100%', background: 'none', border: 'none', textAlign: 'left' }}>
+        <div className="sidebar-user">{user?.username}</div>
+        <button type="button" className="sidebar-link sidebar-logout" onClick={handleLogout}>
           <LogOut size={18} />
           Sair
         </button>

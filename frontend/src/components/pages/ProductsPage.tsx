@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import { Plus, Trash2, Pencil } from 'lucide-react';
+import PageLoading from '../layout/PageLoading';
 
 interface Product {
   id: string;
@@ -9,6 +10,8 @@ interface Product {
   type: string;
   productSubtype: string;
   stock: number | null;
+  description?: string;
+  durationDays?: number | null;
   createdAt: string;
 }
 
@@ -17,7 +20,7 @@ export default function ProductsPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', price: '', type: 'product', description: '' });
+  const [form, setForm] = useState({ name: '', price: '', type: 'product', description: '', durationDays: '' });
 
   const fetchProducts = () => {
     api.get('/api/products').then((res) => {
@@ -30,7 +33,11 @@ export default function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { ...form, price: parseFloat(form.price) };
+    const payload = {
+      ...form,
+      price: parseFloat(form.price),
+      durationDays: form.type === 'subscription' ? parseInt(form.durationDays) || 30 : null,
+    };
     if (editingId) {
       await api.put(`/api/products/${editingId}`, payload);
     } else {
@@ -38,7 +45,7 @@ export default function ProductsPage() {
     }
     setShowForm(false);
     setEditingId(null);
-    setForm({ name: '', price: '', type: 'product', description: '' });
+    setForm({ name: '', price: '', type: 'product', description: '', durationDays: '' });
     fetchProducts();
   };
 
@@ -50,7 +57,13 @@ export default function ProductsPage() {
   };
 
   const startEdit = (p: Product) => {
-    setForm({ name: p.name, price: String(p.price), type: p.type, description: '' });
+    setForm({
+      name: p.name,
+      price: String(p.price),
+      type: p.type,
+      description: p.description || '',
+      durationDays: p.durationDays ? String(p.durationDays) : '',
+    });
     setEditingId(p.id);
     setShowForm(true);
   };
@@ -65,8 +78,8 @@ export default function ProductsPage() {
         <p>Gerencie seus produtos e assinaturas</p>
       </div>
       <div className="toolbar">
-        <span>{products.length} produto(s)</span>
-        <button className="btn btn-primary" onClick={() => { setShowForm(true); setEditingId(null); setForm({ name: '', price: '', type: 'product', description: '' }); }}>
+        <span className="toolbar-meta">{products.length} produto(s)</span>
+        <button className="btn btn-primary" onClick={() => { setShowForm(true); setEditingId(null); setForm({ name: '', price: '', type: 'product', description: '', durationDays: '' }); }}>
           <Plus size={16} /> Novo Produto
         </button>
       </div>
@@ -91,6 +104,12 @@ export default function ProductsPage() {
                   <option value="subscription">Assinatura</option>
                 </select>
               </div>
+              {form.type === 'subscription' && (
+                <div className="form-group">
+                  <label>Duração da Assinatura (dias)</label>
+                  <input className="input" type="number" min="1" value={form.durationDays} onChange={(e) => setForm({ ...form, durationDays: e.target.value })} required />
+                </div>
+              )}
               <div className="form-group">
                 <label>Descrição</label>
                 <input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
@@ -105,7 +124,7 @@ export default function ProductsPage() {
       )}
 
       {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+        <PageLoading showTitle={false} table />
       ) : products.length === 0 ? (
         <div className="empty-state">
           <h3>Nenhum produto encontrado</h3>
@@ -125,11 +144,11 @@ export default function ProductsPage() {
             <tbody>
               {products.map((p) => (
                 <tr key={p.id}>
-                  <td style={{ fontWeight: 600 }}>{p.name}</td>
+                  <td className="cell-strong">{p.name}</td>
                   <td>{formatCurrency(Number(p.price))}</td>
-                  <td><span className={`badge ${p.type === 'subscription' ? 'badge-warning' : 'badge-success'}`}>{p.type === 'subscription' ? 'Assinatura' : 'Produto'}</span></td>
+                  <td><span className={`badge ${p.type === 'subscription' ? 'badge-warning' : 'badge-success'}`}>{p.type === 'subscription' ? `Assinatura (${p.durationDays || 30} dias)` : 'Produto'}</span></td>
                   <td>
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div className="table-actions">
                       <button className="btn btn-ghost btn-sm" onClick={() => startEdit(p)}><Pencil size={14} /></button>
                       <button className="btn btn-danger btn-sm" onClick={() => handleDelete(p.id)}><Trash2 size={14} /></button>
                     </div>

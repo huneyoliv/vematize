@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Zap } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 
@@ -27,8 +28,13 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       <div className="card login-card">
-        <h1>Vematize</h1>
-        <p>Acesse o painel de controle</p>
+        <div className="login-brand">
+          <div className="login-brand-icon" aria-hidden>
+            <Zap size={26} strokeWidth={2.5} />
+          </div>
+          <h1>Vematize</h1>
+          <p className="login-subtitle">Acesse o painel de controle</p>
+        </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="username">Usuário</label>
@@ -53,7 +59,7 @@ export default function LoginPage() {
               placeholder="Digite sua senha"
             />
           </div>
-          {error && <div className="form-error">{error}</div>}
+          {error && <div className="form-error" role="alert">{error}</div>}
           <button type="submit" className="btn btn-primary login-btn" disabled={loading}>
             {loading ? 'Entrando...' : 'Entrar'}
           </button>

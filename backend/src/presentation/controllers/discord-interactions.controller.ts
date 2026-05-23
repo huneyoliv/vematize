@@ -34,7 +34,22 @@ export class DiscordInteractionsController {
       return res.json({ type: 1 });
     }
 
-    if (signature && timestamp && rawBody) {
+    if (body?.type === 3 || body?.type === 5) {
+      if (!signature || !timestamp || !rawBody) {
+        console.log('[Debug] Discord type=3/5 recebido sem assinatura. Rejeitando.');
+        return res.status(401).json({ error: 'Assinatura obrigatória para este tipo de interação' });
+      }
+      try {
+        const { verifyKey } = await import('discord-interactions');
+        const isValid = await verifyKey(rawBody, signature, timestamp, config.publicKey);
+        if (!isValid) {
+          console.log('[Debug] Assinatura Discord inválida para type=3/5. Rejeitando.');
+          return res.status(401).json({ error: 'Assinatura inválida' });
+        }
+      } catch {
+        return res.status(401).json({ error: 'Erro na verificação da assinatura' });
+      }
+    } else if (signature && timestamp && rawBody) {
       try {
         const { verifyKey } = await import('discord-interactions');
         const isValid = await verifyKey(rawBody, signature, timestamp, config.publicKey);
@@ -129,16 +144,30 @@ export class DiscordInteractionsController {
     }
 
     if (customId?.startsWith('CHECKOUT:')) {
-      res.json({ type: 5, data: { flags: 64 } });
-
       const [, productId, discordUserId] = customId.split(':');
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const actualDiscordUserId = userId || discordUserId;
+
+      console.log('[Debug] CHECKOUT customId processado', { productId, discordUserId, actualDiscordUserId });
+
+      if (!productId || !uuidRegex.test(productId)) {
+        console.log('[Debug] Erro Discord: productId invalido no customId', { productId });
+        return res.status(400).json({ error: 'Produto invalido' });
+      }
+
+      if (!actualDiscordUserId) {
+        console.log('[Debug] Erro Discord: discordUserId nao identificado');
+        return res.status(400).json({ error: 'Usuario nao identificado' });
+      }
+
+      res.json({ type: 5, data: { flags: 64 } });
 
       (async () => {
         try {
-          let user = await this.userRepo.findByDiscordId(discordUserId);
+          let user = await this.userRepo.findByDiscordId(actualDiscordUserId);
           if (!user) {
             user = await this.userRepo.create({
-              discordId: discordUserId,
+              discordId: actualDiscordUserId,
               name: username || 'Discord User',
               state: 'active',
             });

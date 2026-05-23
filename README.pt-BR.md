@@ -8,9 +8,10 @@ Sistema de automação de vendas com bots para Telegram e Discord.
 
 | Componente | Tecnologia | Porta |
 |---|---|---|
-| Frontend | Vite + React | 3000 |
-| Backend | NestJS (Clean Architecture) | 3001 |
-| Banco de Dados | PostgreSQL 16 | 5432 |
+| Frontend | Vite + React + Nginx | 3000 |
+| Backend Core (Webhooks) | Go (Chi + pgx) | 5001 |
+| Backend Bots/Painel | NestJS (Clean Architecture) | 3001 |
+| Banco de Dados | PostgreSQL 15 | 5432 |
 | Cache | Redis 7 | 6379 |
 
 ## Requisitos
@@ -69,16 +70,18 @@ docker compose up -d
 
 A variável `DOMAIN` configura automaticamente as URLs:
 
-| DOMAIN | Frontend | Backend API |
-|---|---|---|
-| `localhost` | http://localhost:3000 | http://localhost:3001 |
-| `meusite.com` | https://meusite.com | https://api.meusite.com |
+| DOMAIN | Frontend | Backend API | Backend Go (Webhooks) |
+|---|---|---|---|
+| `localhost` | http://localhost:3000 | http://localhost:3001 | http://localhost:5001 |
+| `meusite.com` | https://meusite.com | https://api.meusite.com | https://api.meusite.com/api/webhook/ |
 
-Em modo **desenvolvimento** (`DOMAIN=localhost`), o frontend faz proxy das chamadas `/api/*` direto para o backend na porta 3001.
+Em modo **desenvolvimento** (`DOMAIN=localhost`), o Nginx do frontend faz proxy:
+* As chamadas `/api/webhook/*` vão para o **Go** (porta `5001`).
+* As outras chamadas `/api/*` vão para o **NestJS** (porta `3001`).
 
-Em modo **produção**, configure um reverse proxy (Nginx/Caddy) para rotear:
+Em modo **produção**, configure o proxy reverso (Nginx/Caddy) para encaminhar:
 - `meusite.com` → frontend (porta 3000)
-- `api.meusite.com` → backend (porta 3001)
+- `api.meusite.com` → frontend (porta 3000) que roteará para o Go ou NestJS com base nas rotas configuradas no `nginx.conf` do frontend.
 
 ## Auto-criação de Tabelas
 
@@ -103,23 +106,34 @@ Este projeto segue boas práticas de segurança:
 - **Rate Limiting**: 60 requisições/minuto por IP (global)
 - **Validação de Input**: Todos os endpoints usam DTOs com class-validator, campos desconhecidos são rejeitados
 - **Docker**: PostgreSQL/Redis vinculados apenas ao localhost, Redis exige autenticação
-- **Build**: Multi-stage Docker builds, container roda como usuário não-root
+- **Build**: Multi-stage Docker builds para Go, NestJS e Nginx, containers rodam como usuário não-root
 
 ## Limites de Recursos
 
-| Serviço | RAM Máxima |
-|---|---|
-| PostgreSQL | 2 GB |
-| Redis | 2 GB |
+| Serviço | RAM Máxima | CPU Máxima |
+|---|---|---|
+| PostgreSQL | 512 MB | 1.0 |
+| Redis | 192 MB | 0.5 |
+| NestJS Backend | 384 MB | 1.0 |
+| Go Backend | 64 MB | 0.2 |
+| Frontend | 256 MB | 0.5 |
 
 ## Desenvolvimento Local (sem Docker)
 
-### Backend
+### Backend NestJS
 
 ```bash
 cd backend
 npm install
 npm run dev
+```
+
+### Backend Go
+
+```bash
+cd backend-go
+go mod tidy
+go run main.go
 ```
 
 ### Frontend
@@ -134,20 +148,27 @@ npm run dev
 
 ```
 vematize/
-├── frontend/          # Vite + React
+├── frontend/          # Vite + React + Nginx
 │   ├── src/
 │   │   ├── components/
 │   │   ├── services/
 │   │   ├── hooks/
 │   │   └── main.tsx
 │   └── Dockerfile
-├── backend/           # NestJS (Clean Architecture)
+├── backend/           # NestJS (Painel, Admin & Bots)
 │   ├── src/
 │   │   ├── domain/          # Entidades de domínio
 │   │   ├── application/     # DTOs e Use Cases
-│   │   ├── infrastructure/  # TypeORM, Repositórios
+│   │   ├── infrastructure/  # TypeORM, Repositories
 │   │   └── presentation/    # Controllers, Guards
 │   └── Dockerfile
+├── backend-go/        # Go (Transações, Webhooks, Alto Throughput)
+│   ├── db/              # Conexão pgxpool e Repositories
+│   ├── services/        # Validadores de webhook e clientes MP/Efí
+│   ├── handlers/        # Endpoints HTTP Chi
+│   ├── crypto/          # Criptografia compatível AES-256-GCM
+│   ├── Dockerfile
+│   └── main.go
 ├── docker-compose.yml
 ├── .env.example
 └── README.md

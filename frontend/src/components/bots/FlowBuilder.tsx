@@ -149,7 +149,9 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
   };
 
   const activeFlow = flows[activeFlowIndex] || null;
-  const livePreviewStep = previewStep || (activeFlow?.steps?.[0] || null);
+  const livePreviewStep = previewStep
+    ? (activeFlow?.steps.find(s => s.id === previewStep.id) || previewStep)
+    : (activeFlow?.steps?.[0] || null);
 
   return (
     <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
@@ -185,7 +187,7 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
           <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>Configurações do Fluxo</span>
-              {flows.length > 1 && (
+              {flows.length > 1 && activeFlow.trigger !== '/start' && (
                 <button type="button" className="btn btn-danger btn-sm" onClick={() => removeFlow(activeFlowIndex)}>
                   <Trash2 size={14} /> Remover
                 </button>
@@ -208,6 +210,7 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                   value={activeFlow.trigger}
                   onChange={(e) => updateFlow(activeFlowIndex, { trigger: e.target.value })}
                   placeholder="Ex: /start"
+                  disabled={activeFlow.trigger === '/start'}
                 />
               </div>
             </div>
@@ -222,7 +225,7 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {activeFlow.steps.map((step, stepIndex) => {
-                  const isStart = activeFlow.startStepId === step.id;
+                  const isStart = activeFlow.trigger === '/start' && stepIndex === 0;
                   const isExpanded = expandedSteps[step.id];
                   const isPreviewActive = livePreviewStep?.id === step.id;
                   return (
@@ -247,17 +250,12 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                             <Eye size={12} />
                           </button>
                           {!isStart && (
-                            <button type="button" className="btn btn-ghost btn-sm"
-                              onClick={(e) => { e.stopPropagation(); updateFlow(activeFlowIndex, { startStepId: step.id }); }}
-                              style={{ padding: '4px 8px', fontSize: 11 }}>
-                              <Star size={12} /> Inicial
+                            <button type="button" className="btn btn-danger btn-sm"
+                              onClick={(e) => { e.stopPropagation(); removeStep(activeFlowIndex, stepIndex); }}
+                              style={{ padding: '4px 8px' }}>
+                              <Trash2 size={12} />
                             </button>
                           )}
-                          <button type="button" className="btn btn-danger btn-sm"
-                            onClick={(e) => { e.stopPropagation(); removeStep(activeFlowIndex, stepIndex); }}
-                            style={{ padding: '4px 8px' }}>
-                            <Trash2 size={12} />
-                          </button>
                           {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                         </div>
                       </div>

@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import Sidebar from './components/layout/Sidebar';
+import PageShell from './components/layout/PageShell';
 import LoginPage from './components/pages/LoginPage';
 import DashboardPage from './components/pages/DashboardPage';
 import ProductsPage from './components/pages/ProductsPage';
@@ -13,12 +14,21 @@ import SettingsPage from './components/pages/SettingsPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-spinner" aria-hidden />
+        <span>Carregando...</span>
+      </div>
+    );
+  }
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   return (
     <>
       <Sidebar />
-      <main className="content">{children}</main>
+      <main className="content">
+        <PageShell>{children}</PageShell>
+      </main>
     </>
   );
 }
@@ -26,7 +36,14 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   const { isAuthenticated, loading } = useAuth();
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="app-loading-spinner" aria-hidden />
+        <span>Carregando...</span>
+      </div>
+    );
+  }
 
   return (
     <Routes>

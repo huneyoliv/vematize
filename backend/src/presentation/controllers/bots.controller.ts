@@ -1,9 +1,10 @@
-import { Controller, Get, Put, Param, Body, UseGuards } from '@nestjs/common';
+import { Controller, Get, Put, Param, Body, UseGuards, BadRequestException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { BotConfigRepository } from '../../infrastructure/database/repositories/bot-config.repository';
 import { TelegramBotService } from '../../application/telegram/telegram-bot.service';
 import { DiscordBotService } from '../../application/discord/discord-bot.service';
+import { DiscordPanelService } from '../../application/discord/discord-panel.service';
 
 
 @Controller('api/bots')
@@ -13,6 +14,7 @@ export class BotsController {
     private readonly botConfigRepo: BotConfigRepository,
     private readonly telegramBotService: TelegramBotService,
     private readonly discordBotService: DiscordBotService,
+    private readonly discordPanelService: DiscordPanelService,
   ) {}
   @Get()
   async findAll() {
@@ -30,6 +32,22 @@ export class BotsController {
     @Body() dto: any,
   ) {
     const { regenerateInteractionsToken, ...data } = dto;
+
+    if (platform === 'telegram' && data.flows) {
+      const startFlow = data.flows.find((f: any) => f.trigger === '/start');
+      if (!startFlow) {
+        throw new BadRequestException('O fluxo inicial (/start) é obrigatório e não pode ser removido ou alterado.');
+      }
+    }
+
+    if (platform === 'discord' && data.discordPanels) {
+      try {
+        console.log('[Debug] Sincronizando paineis do Discord no BotsController');
+        data.discordPanels = await this.discordPanelService.syncPanels(data.discordPanels);
+      } catch (error: any) {
+        console.error('[Debug] Erro ao sincronizar paineis do Discord:', error?.message);
+      }
+    }
 
     if (platform === 'discord' && data.botToken && !data.interactionsToken) {
       const existing = await this.botConfigRepo.findByPlatform('discord');

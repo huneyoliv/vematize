@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { TelegramIcon, DiscordIcon } from '../icons/platform-icons';
+import PageLoading from '../layout/PageLoading';
 
 interface BotStatus {
   platform: string;
@@ -47,7 +48,7 @@ export default function BotsListPage() {
   };
 
   if (loading) {
-    return <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>;
+    return <PageLoading />;
   }
 
   return (
@@ -57,7 +58,7 @@ export default function BotsListPage() {
         <p>Gerencie as conexões e configurações dos seus bots</p>
       </div>
 
-      <div className="grid grid-2" style={{ maxWidth: 800 }}>
+      <div className="grid grid-2 bots-grid">
         {platforms.map((p) => {
           const status = getStatus(p.key);
           const Icon = p.icon;
@@ -66,24 +67,26 @@ export default function BotsListPage() {
               key={p.key}
               className="card bot-card"
               onClick={() => navigate(`/bots/${p.key}`)}
-              style={{ cursor: 'pointer', position: 'relative' }}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  navigate(`/bots/${p.key}`);
+                }
+              }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{
-                    width: 44,
-                    height: 44,
-                    borderRadius: 'var(--radius-sm)',
-                    background: `${p.color}20`,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
+              <div className="bot-card-header">
+                <div className="bot-card-title">
+                  <div
+                    className="bot-card-icon"
+                    style={{ background: `${p.color}20` }}
+                  >
                     <Icon width={22} height={22} style={{ color: p.color }} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 16, fontWeight: 700 }}>{p.name}</h3>
-                    <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    <h3 className="bot-card-name">{p.name}</h3>
+                    <span className="bot-card-type">
                       {p.key === 'telegram' ? 'Bot pessoal' : 'Bot de servidor'}
                     </span>
                   </div>
@@ -93,12 +96,10 @@ export default function BotsListPage() {
                 </span>
               </div>
 
-              <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
-                {p.description}
-              </p>
+              <p className="bot-card-desc">{p.description}</p>
 
-              <button className="btn btn-primary" style={{ width: '100%' }}>
-                {status === 'connected' ? 'Ver Configuração' : 'Configurar Conexão'}
+              <button type="button" className="btn btn-primary bot-card-action">
+                {status === 'connected' ? 'Ver configuração' : 'Configurar conexão'}
               </button>
             </div>
           );

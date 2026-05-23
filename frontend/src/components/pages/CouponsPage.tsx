@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Plus, Trash2, Pencil } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
+import PageLoading from '../layout/PageLoading';
 
 interface Coupon {
   id: string;
@@ -54,7 +55,7 @@ export default function CouponsPage() {
         <p>Gerencie cupons de desconto</p>
       </div>
       <div className="toolbar">
-        <span>{coupons.length} cupom(ns)</span>
+        <span className="toolbar-meta">{coupons.length} cupom(ns)</span>
         <button className="btn btn-primary" onClick={() => setShowForm(true)}>
           <Plus size={16} /> Novo Cupom
         </button>
@@ -95,7 +96,7 @@ export default function CouponsPage() {
       )}
 
       {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+        <PageLoading showTitle={false} table />
       ) : coupons.length === 0 ? (
         <div className="empty-state">
           <h3>Nenhum cupom encontrado</h3>
@@ -117,7 +118,7 @@ export default function CouponsPage() {
             <tbody>
               {coupons.map((c) => (
                 <tr key={c.id}>
-                  <td style={{ fontWeight: 600, fontFamily: 'monospace' }}>{c.code}</td>
+                  <td className="cell-mono">{c.code}</td>
                   <td>{c.type === 'percentage' ? '%' : c.type === 'fixed_amount' ? 'R$' : 'Dias'}</td>
                   <td>{c.value}{c.type === 'percentage' ? '%' : ''}</td>
                   <td>{c.currentUses}{c.maxUses ? `/${c.maxUses}` : ''}</td>

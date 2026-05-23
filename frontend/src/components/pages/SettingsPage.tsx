@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Save, CreditCard, Wallet, Settings2 } from 'lucide-react';
+import { Save, Settings2 } from 'lucide-react';
 import GatewayConfigModal from '../settings/GatewayConfigModal';
+import PageLoading from '../layout/PageLoading';
+import mpLogo from './MP_RGB_HANDSHAKE_color_vertical.png';
+import efiLogo from './Efi-bank-logo.png';
 
 interface GatewayConfig {
   mode?: string;
@@ -22,7 +25,8 @@ interface GatewayConfig {
 function getGatewayStatus(config: GatewayConfig | null | undefined, type: 'mp' | 'efi'): { label: string; variant: string } {
   if (!config) return { label: 'Não configurado', variant: 'badge-muted' };
   if (type === 'mp') {
-    if (config.mode === 'production' && config.production_access_token) return { label: 'Produção', variant: 'badge-success' };
+    const mode = config.mode || 'production';
+    if (mode === 'production' && config.production_access_token) return { label: 'Produção', variant: 'badge-success' };
     if (config.sandbox_access_token) return { label: 'Sandbox', variant: 'badge-warning' };
   }
   if (type === 'efi') {
@@ -53,7 +57,7 @@ export default function SettingsPage() {
           activeGateway: res.data.activeGateway || '',
           preferredPixGateway: res.data.preferredPixGateway || '',
         });
-        if (res.data.mercadopagoConfig) setMpConfig({ mode: 'sandbox', ...res.data.mercadopagoConfig });
+        if (res.data.mercadopagoConfig) setMpConfig({ mode: 'production', ...res.data.mercadopagoConfig });
         if (res.data.efiConfig) setEfiConfig({ mode: 'sandbox', ...res.data.efiConfig });
       }
       setLoading(false);
@@ -67,6 +71,20 @@ export default function SettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (form.preferredPixGateway === 'mercadopago') {
+      const status = getGatewayStatus(mpConfig, 'mp');
+      if (status.label === 'Não configurado') {
+        showMsg('Configure as credenciais do Mercado Pago primeiro!');
+        return;
+      }
+    }
+    if (form.preferredPixGateway === 'efi') {
+      const status = getGatewayStatus(efiConfig, 'efi');
+      if (status.label === 'Não configurado') {
+        showMsg('Configure as credenciais do Efí Bank primeiro!');
+        return;
+      }
+    }
     setSaving(true);
     try {
       await api.put('/api/settings', form);
@@ -78,6 +96,11 @@ export default function SettingsPage() {
   };
 
   const handleSelectGateway = async (gw: 'mercadopago' | 'efi') => {
+    const status = getGatewayStatus(gw === 'mercadopago' ? mpConfig : efiConfig, gw === 'mercadopago' ? 'mp' : 'efi');
+    if (status.label === 'Não configurado') {
+      showMsg(`Configure as credenciais do ${gw === 'mercadopago' ? 'Mercado Pago' : 'Efí Bank'} primeiro!`);
+      return;
+    }
     const newActive = form.activeGateway === gw ? '' : gw;
     setForm(prev => ({ ...prev, activeGateway: newActive }));
     try {
@@ -102,7 +125,7 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) return <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>;
+  if (loading) return <PageLoading />;
 
   const mpStatus = getGatewayStatus(mpConfig, 'mp');
   const efiStatus = getGatewayStatus(efiConfig, 'efi');
@@ -115,19 +138,17 @@ export default function SettingsPage() {
       </div>
 
       {saveMsg && (
-        <div style={{
-          padding: '10px 16px', marginBottom: 16, borderRadius: 'var(--radius-sm)',
-          background: saveMsg.includes('Erro') ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
-          color: saveMsg.includes('Erro') ? 'var(--danger)' : 'var(--success)',
-          fontSize: 13, fontWeight: 600,
-        }}>
+        <div
+          className={`alert-banner ${saveMsg.includes('Erro') ? 'alert-banner--error' : 'alert-banner--success'}`}
+          role="status"
+        >
           {saveMsg}
         </div>
       )}
 
-      <div className="card" style={{ maxWidth: 700, marginBottom: 24 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Geral</h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>Configurações gerais do sistema.</p>
+      <div className="card settings-section">
+        <h3 className="settings-section-title">Geral</h3>
+        <p className="settings-section-desc">Configurações gerais do sistema.</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>URL do Logo</label>
@@ -140,7 +161,7 @@ export default function SettingsPage() {
               <option value="mercadopago">Mercado Pago</option>
               <option value="efi">Efí Bank</option>
             </select>
-            <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
+            <span className="settings-hint">
               Qual gateway será usado para gerar cobranças Pix no checkout.
             </span>
           </div>
@@ -150,103 +171,87 @@ export default function SettingsPage() {
         </form>
       </div>
 
-      <div style={{ maxWidth: 700 }}>
-        <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Gateway de Pagamento</h3>
-        <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
+      <div className="settings-section">
+        <h3 className="settings-section-title">Gateway de pagamento</h3>
+        <p className="settings-section-desc">
           Selecione e configure o gateway ativo para processar pagamentos.
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <div className="gateway-grid">
           <div
-            className="card gateway-card"
-            style={{
-              cursor: 'pointer',
-              borderColor: form.activeGateway === 'mercadopago' ? 'var(--accent)' : undefined,
-              boxShadow: form.activeGateway === 'mercadopago' ? '0 0 20px var(--accent-glow)' : undefined,
-            }}
+            className={`card gateway-card${form.activeGateway === 'mercadopago' ? ' gateway-card--active-mp' : ''}`}
             onClick={() => handleSelectGateway('mercadopago')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectGateway('mercadopago');
+              }
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 'var(--radius-sm)',
-                background: 'rgba(0,158,227,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <CreditCard size={22} style={{ color: '#009ee3' }} />
+            <div className="gateway-card-inner">
+              <div className="gateway-icon gateway-icon--mp" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, padding: 4 }}>
+                <img src={mpLogo} alt="Mercado Pago" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Mercado Pago</h4>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>PIX e cartão de crédito</span>
+              <div className="gateway-info">
+                <h4>Mercado Pago</h4>
+                <span>PIX e cartão de crédito</span>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="gateway-card-footer">
               <span className={`badge ${mpStatus.variant}`}>{mpStatus.label}</span>
               <button
+                type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={(e) => { e.stopPropagation(); setModalGateway('mercadopago'); }}
-                style={{ gap: 6 }}
               >
                 <Settings2 size={14} /> Configurar
               </button>
             </div>
             {form.activeGateway === 'mercadopago' && (
-              <div style={{
-                marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)',
-                display: 'flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, color: 'var(--accent)',
-              }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)',
-                  boxShadow: '0 0 8px var(--accent-glow)',
-                }} />
-                Gateway Ativo
+              <div className="gateway-active gateway-active--mp">
+                <div className="gateway-active-dot gateway-active-dot--mp" aria-hidden />
+                Gateway ativo
               </div>
             )}
           </div>
-
+ 
           <div
-            className="card gateway-card"
-            style={{
-              cursor: 'pointer',
-              borderColor: form.activeGateway === 'efi' ? 'var(--success)' : undefined,
-              boxShadow: form.activeGateway === 'efi' ? '0 0 20px rgba(16,185,129,0.3)' : undefined,
-            }}
+            className={`card gateway-card${form.activeGateway === 'efi' ? ' gateway-card--active-efi' : ''}`}
             onClick={() => handleSelectGateway('efi')}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleSelectGateway('efi');
+              }
+            }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 'var(--radius-sm)',
-                background: 'rgba(16,185,129,0.15)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Wallet size={22} style={{ color: 'var(--success)' }} />
+            <div className="gateway-card-inner">
+              <div className="gateway-icon gateway-icon--efi" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 44, height: 44, padding: 4 }}>
+                <img src={efiLogo} alt="Efí Bank" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               </div>
-              <div style={{ flex: 1 }}>
-                <h4 style={{ fontSize: 15, fontWeight: 700, margin: 0 }}>Efí Bank</h4>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>PIX e boleto</span>
+              <div className="gateway-info">
+                <h4>Efí Bank</h4>
+                <span>PIX e boleto</span>
               </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="gateway-card-footer">
               <span className={`badge ${efiStatus.variant}`}>{efiStatus.label}</span>
               <button
+                type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={(e) => { e.stopPropagation(); setModalGateway('efi'); }}
-                style={{ gap: 6 }}
               >
                 <Settings2 size={14} /> Configurar
               </button>
             </div>
             {form.activeGateway === 'efi' && (
-              <div style={{
-                marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)',
-                display: 'flex', alignItems: 'center', gap: 6,
-                fontSize: 12, fontWeight: 600, color: 'var(--success)',
-              }}>
-                <div style={{
-                  width: 8, height: 8, borderRadius: '50%', background: 'var(--success)',
-                  boxShadow: '0 0 8px rgba(16,185,129,0.3)',
-                }} />
-                Gateway Ativo
+              <div className="gateway-active gateway-active--efi">
+                <div className="gateway-active-dot gateway-active-dot--efi" aria-hidden />
+                Gateway ativo
               </div>
             )}
           </div>

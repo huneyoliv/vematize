@@ -16,6 +16,39 @@ export class SettingsController {
 
   @Put()
   async update(@Body() dto: UpdateSettingsDto) {
+    const current = await this.settingsRepo.get();
+    const mpConfig = dto.mercadopagoConfig !== undefined ? dto.mercadopagoConfig : current?.mercadopagoConfig;
+    const efiConfig = dto.efiConfig !== undefined ? dto.efiConfig : current?.efiConfig;
+
+    const isMpConfigured = () => {
+      if (!mpConfig) return false;
+      const mode = mpConfig.mode || 'production';
+      if (mode === 'production' && mpConfig.production_access_token) return true;
+      if (mpConfig.sandbox_access_token) return true;
+      return false;
+    };
+
+    const isEfiConfigured = () => {
+      if (!efiConfig) return false;
+      if (efiConfig.mode === 'production' && efiConfig.production_client_id) return true;
+      if (efiConfig.sandbox_client_id) return true;
+      return false;
+    };
+
+    if (dto.activeGateway === 'mercadopago' && !isMpConfigured()) {
+      throw new BadRequestException('Configure as credenciais do Mercado Pago primeiro.');
+    }
+    if (dto.activeGateway === 'efi' && !isEfiConfigured()) {
+      throw new BadRequestException('Configure as credenciais do Efí Bank primeiro.');
+    }
+
+    if (dto.preferredPixGateway === 'mercadopago' && !isMpConfigured()) {
+      throw new BadRequestException('Configure as credenciais do Mercado Pago primeiro.');
+    }
+    if (dto.preferredPixGateway === 'efi' && !isEfiConfigured()) {
+      throw new BadRequestException('Configure as credenciais do Efí Bank primeiro.');
+    }
+
     return this.settingsRepo.upsert(dto as any);
   }
 
@@ -26,16 +59,29 @@ export class SettingsController {
   }
 
   @Post('upload-certificate')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 100 * 1024 },
+      fileFilter: (req, file, cb) => {
+        if (!file.originalname.endsWith('.p12')) {
+          return cb(new BadRequestException('Apenas arquivos .p12 sao aceitos'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
   async uploadCertificate(
     @UploadedFile() file: Express.Multer.File,
     @Body('environment') environment: string,
   ) {
+    console.log('[Debug] uploadCertificate acionado', { filename: file?.originalname, environment });
     if (!file) {
+      console.log('[Debug] Erro no upload: Arquivo nao enviado');
       throw new BadRequestException('Nenhum arquivo enviado.');
     }
 
     if (!file.originalname.endsWith('.p12')) {
+      console.log('[Debug] Erro no upload: Tipo do arquivo invalido');
       throw new BadRequestException('O arquivo deve ser .p12');
     }
 
@@ -64,9 +110,32 @@ export class SettingsController {
 
   @Post('efi-webhook')
   async registerEfiWebhook(@Body('webhookUrl') webhookUrl: string) {
+    console.log('[Debug] registerEfiWebhook acionado', { webhookUrl });
     const domain = process.env.DOMAIN || 'localhost';
     if (domain === 'localhost' || domain === '127.0.0.1') {
-      throw new BadRequestException('Webhook não pode ser configurado em localhost. Configure um domínio válido.');
+      console.log('[Debug] Erro ao registrar webhook Efi: localhost detectado');
+      throw new BadRequestException('Webhook nao pode ser configurado em localhost. Configure um dominio valido.');
+    }
+
+    if (!webhookUrl) {
+      console.log('[Debug] Erro ao registrar webhook Efi: webhookUrl nao enviado');
+      throw new BadRequestException('webhookUrl e obrigatorio');
+    }
+
+    try {
+      const parsedUrl = new URL(webhookUrl);
+      if (parsedUrl.protocol !== 'https:') {
+        console.log('[Debug] Erro ao registrar webhook Efi: protocolo invalido', { protocol: parsedUrl.protocol });
+        throw new BadRequestException('Apenas protocolo https e permitido para webhook');
+      }
+      if (parsedUrl.hostname !== domain) {
+        console.log('[Debug] Erro ao registrar webhook Efi: hostname invalido', { hostname: parsedUrl.hostname, expected: domain });
+        throw new BadRequestException(`O webhookUrl deve apontar para o dominio configurado: ${domain}`);
+      }
+    } catch (e: any) {
+      if (e instanceof BadRequestException) throw e;
+      console.log('[Debug] Erro ao registrar webhook Efi: URL malformada', { error: e?.message });
+      throw new BadRequestException('URL invalida');
     }
 
     const current = await this.settingsRepo.get();
@@ -119,7 +188,6 @@ export class SettingsController {
           headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
-            'x-skip-mtls-checking': 'true',
           },
           pfx: certBuffer,
           passphrase: '',

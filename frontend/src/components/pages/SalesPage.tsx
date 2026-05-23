@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Tag } from 'lucide-react';
 import api from '../../services/api';
+import PageLoading from '../layout/PageLoading';
 
 interface Sale {
   id: string;
@@ -62,8 +64,8 @@ export default function SalesPage() {
   };
 
   const getPlatformBadge = (sale: Sale) => {
-    if (sale.telegramChatId) return <span className="badge" style={{ background: 'rgba(0,136,204,0.15)', color: '#0088cc' }}>Telegram</span>;
-    if (sale.discordThreadId) return <span className="badge" style={{ background: 'rgba(88,101,242,0.15)', color: '#5865F2' }}>Discord</span>;
+    if (sale.telegramChatId) return <span className="badge badge-telegram">Telegram</span>;
+    if (sale.discordThreadId) return <span className="badge badge-discord">Discord</span>;
     return <span className="badge badge-muted">API</span>;
   };
 
@@ -80,7 +82,7 @@ export default function SalesPage() {
       </div>
 
       {!loading && sales.length > 0 && (
-        <div className="grid grid-4" style={{ marginBottom: 24 }}>
+        <div className="grid grid-4 stats-grid">
           <div className="stat-card">
             <span className="stat-label">Total de Vendas</span>
             <span className="stat-value">{sales.length}</span>
@@ -91,7 +93,7 @@ export default function SalesPage() {
           </div>
           <div className="stat-card">
             <span className="stat-label">Receita Total</span>
-            <span className="stat-value" style={{ fontSize: 20 }}>{formatCurrency(totalRevenue)}</span>
+            <span className="stat-value stat-value--currency">{formatCurrency(totalRevenue)}</span>
           </div>
           <div className="stat-card">
             <span className="stat-label">Pendentes</span>
@@ -101,7 +103,7 @@ export default function SalesPage() {
       )}
 
       {loading ? (
-        <p style={{ color: 'var(--text-secondary)' }}>Carregando...</p>
+        <PageLoading stats table />
       ) : sales.length === 0 ? (
         <div className="empty-state">
           <h3>Nenhuma venda encontrada</h3>
@@ -123,9 +125,9 @@ export default function SalesPage() {
             <tbody>
               {sales.map((s) => (
                 <tr key={s.id}>
-                  <td style={{ fontWeight: 600 }}>
+                  <td className="cell-strong">
                     {products[s.productId]?.name || (
-                      <span style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                      <span className="cell-mono" style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontWeight: 400 }}>
                         {s.productId.slice(0, 8)}...
                       </span>
                     )}
@@ -137,7 +139,10 @@ export default function SalesPage() {
                         ? formatCurrency(Number(products[s.productId].price))
                         : '—'}
                     {s.couponCode && (
-                      <span style={{ marginLeft: 6, fontSize: 11, color: 'var(--accent)' }}>🎫 {s.couponCode}</span>
+                      <span className="coupon-tag">
+                        <Tag size={11} aria-hidden />
+                        {s.couponCode}
+                      </span>
                     )}
                   </td>
                   <td>{getGatewayLabel(s.paymentGateway)}</td>

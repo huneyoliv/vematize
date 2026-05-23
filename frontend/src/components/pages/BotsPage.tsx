@@ -32,9 +32,7 @@ const platformInfo: Record<string, { name: string; icon: typeof TelegramIcon; co
 
 function getInteractionsUrl(token?: string) {
   if (!token) return '';
-  const domain = import.meta.env.VITE_DOMAIN || 'localhost';
-  const base = domain === 'localhost' ? '' : `https://api.${domain}`;
-  return `${base}/api/discord/interactions/${token}`;
+  return `${window.location.origin}/api/discord/interactions/${token}`;
 }
 
 

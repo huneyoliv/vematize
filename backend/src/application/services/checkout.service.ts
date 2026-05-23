@@ -36,9 +36,17 @@ export class CheckoutService {
   ) {}
 
   async createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
+    console.log('[Debug] Iniciando criacao de checkout', { productId: input.productId, userId: input.userId, platform: input.platform });
+    const user = await this.userRepo.findById(input.userId);
+    if (!user) {
+      console.log('[Debug] Erro no checkout: Usuario nao encontrado', { userId: input.userId });
+      throw new BadRequestException('Usuario nao encontrado.');
+    }
+
     const product = await this.productRepo.findById(input.productId);
     if (!product) {
-      throw new BadRequestException('Produto não encontrado.');
+      console.log('[Debug] Erro no checkout: Produto nao encontrado', { productId: input.productId });
+      throw new BadRequestException('Produto nao encontrado.');
     }
 
     if (product.stock !== null && product.stock !== undefined && product.stock <= 0) {

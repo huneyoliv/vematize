@@ -229,7 +229,7 @@ export default function DiscordPanelsManager({ panels, onChange, onSave, saving 
                               <div style={{ flex: 1 }}>
                                 <span style={{ fontSize: 14, fontWeight: 600 }}>{product.name}</span>
                                 <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>
-                                  R$ {product.price?.toFixed(2).replace('.', ',')}
+                                  R$ {Number(product.price || 0).toFixed(2).replace('.', ',')}
                                 </span>
                               </div>
                             </label>
