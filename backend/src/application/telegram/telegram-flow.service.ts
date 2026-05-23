@@ -182,6 +182,7 @@ export class TelegramFlowService {
       }
 
       case 'CANCEL_SALE': {
+        await ctx.deleteMessage().catch(() => {});
         const saleId = payload;
         const sale = await this.checkoutService['saleRepo'].findById(saleId);
         if (sale && sale.status === 'pending') {
