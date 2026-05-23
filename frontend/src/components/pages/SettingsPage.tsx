@@ -25,13 +25,10 @@ interface GatewayConfig {
 function getGatewayStatus(config: GatewayConfig | null | undefined, type: 'mp' | 'efi'): { label: string; variant: string } {
   if (!config) return { label: 'Não configurado', variant: 'badge-muted' };
   if (type === 'mp') {
-    const mode = config.mode || 'production';
-    if (mode === 'production' && config.production_access_token) return { label: 'Produção', variant: 'badge-success' };
-    if (config.sandbox_access_token) return { label: 'Sandbox', variant: 'badge-warning' };
+    if (config.production_access_token) return { label: 'Produção', variant: 'badge-success' };
   }
   if (type === 'efi') {
-    if (config.mode === 'production' && config.production_client_id) return { label: 'Produção', variant: 'badge-success' };
-    if (config.sandbox_client_id) return { label: 'Homologação', variant: 'badge-warning' };
+    if (config.production_client_id) return { label: 'Produção', variant: 'badge-success' };
   }
   return { label: 'Não configurado', variant: 'badge-muted' };
 }
@@ -40,10 +37,9 @@ export default function SettingsPage() {
   const [form, setForm] = useState({
     logoUrl: '',
     activeGateway: '' as string,
-    preferredPixGateway: '' as string,
   });
-  const [mpConfig, setMpConfig] = useState<GatewayConfig>({ mode: 'sandbox' });
-  const [efiConfig, setEfiConfig] = useState<GatewayConfig>({ mode: 'sandbox' });
+  const [mpConfig, setMpConfig] = useState<GatewayConfig>({ mode: 'production' });
+  const [efiConfig, setEfiConfig] = useState<GatewayConfig>({ mode: 'production' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saveMsg, setSaveMsg] = useState('');
@@ -55,10 +51,9 @@ export default function SettingsPage() {
         setForm({
           logoUrl: res.data.logoUrl || '',
           activeGateway: res.data.activeGateway || '',
-          preferredPixGateway: res.data.preferredPixGateway || '',
         });
         if (res.data.mercadopagoConfig) setMpConfig({ mode: 'production', ...res.data.mercadopagoConfig });
-        if (res.data.efiConfig) setEfiConfig({ mode: 'sandbox', ...res.data.efiConfig });
+        if (res.data.efiConfig) setEfiConfig({ mode: 'production', ...res.data.efiConfig });
       }
       setLoading(false);
     }).catch(() => setLoading(false));
@@ -71,20 +66,6 @@ export default function SettingsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.preferredPixGateway === 'mercadopago') {
-      const status = getGatewayStatus(mpConfig, 'mp');
-      if (status.label === 'Não configurado') {
-        showMsg('Configure as credenciais do Mercado Pago primeiro!');
-        return;
-      }
-    }
-    if (form.preferredPixGateway === 'efi') {
-      const status = getGatewayStatus(efiConfig, 'efi');
-      if (status.label === 'Não configurado') {
-        showMsg('Configure as credenciais do Efí Bank primeiro!');
-        return;
-      }
-    }
     setSaving(true);
     try {
       await api.put('/api/settings', form);
@@ -153,17 +134,6 @@ export default function SettingsPage() {
           <div className="form-group">
             <label>URL do Logo</label>
             <input className="input" value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://..." />
-          </div>
-          <div className="form-group">
-            <label>Gateway Pix Preferido</label>
-            <select className="input" value={form.preferredPixGateway} onChange={(e) => setForm({ ...form, preferredPixGateway: e.target.value })}>
-              <option value="">Automático (usa gateway ativo)</option>
-              <option value="mercadopago">Mercado Pago</option>
-              <option value="efi">Efí Bank</option>
-            </select>
-            <span className="settings-hint">
-              Qual gateway será usado para gerar cobranças Pix no checkout.
-            </span>
           </div>
           <button type="submit" className="btn btn-primary" disabled={saving}>
             <Save size={16} /> {saving ? 'Salvando...' : 'Salvar'}

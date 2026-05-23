@@ -44,10 +44,10 @@ describe('SettingsController', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('deve aceitar ativacao do Mercado Pago se credenciais de sandbox estiverem presentes', async () => {
+  it('deve aceitar ativacao do Mercado Pago se credenciais de producao estiverem presentes', async () => {
     mockSettingsRepo.get.mockResolvedValue({
       mercadopagoConfig: {
-        sandbox_access_token: 'valid',
+        production_access_token: 'valid-prod-token',
       },
     });
     mockSettingsRepo.upsert.mockResolvedValue({ success: true });
@@ -73,10 +73,10 @@ describe('SettingsController', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('deve aceitar ativacao do Efi Bank se credenciais estiverem presentes', async () => {
+  it('deve aceitar ativacao do Efi Bank se credenciais de producao estiverem presentes', async () => {
     mockSettingsRepo.get.mockResolvedValue({
       efiConfig: {
-        sandbox_client_id: 'valid',
+        production_client_id: 'valid-prod-client-id',
       },
     });
     mockSettingsRepo.upsert.mockResolvedValue({ success: true });

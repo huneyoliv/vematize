@@ -27,6 +27,7 @@ import { CheckoutController } from './presentation/controllers/checkout.controll
 import { WebhookController } from './presentation/controllers/webhook.controller';
 import { TelegramWebhookController } from './presentation/controllers/telegram-webhook.controller';
 import { DiscordInteractionsController } from './presentation/controllers/discord-interactions.controller';
+import { CampaignController } from './presentation/controllers/campaign.controller';
 import { MercadoPagoService } from './application/services/mercadopago.service';
 import { EfiService } from './application/services/efi.service';
 import { PaymentGatewayService } from './application/services/payment-gateway.service';
@@ -72,6 +73,7 @@ import { DiscordDeliveryService } from './application/discord/discord-delivery.s
     WebhookController,
     TelegramWebhookController,
     DiscordInteractionsController,
+    CampaignController,
   ],
   providers: [
     {

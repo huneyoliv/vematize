@@ -16,73 +16,20 @@ export class SettingsController {
 
   @Put()
   async update(@Body() dto: UpdateSettingsDto) {
-    console.log('[Debug] Iniciando atualizacao de configuracoes', { dto });
     const current = await this.settingsRepo.get();
     const mpConfig = dto.mercadopagoConfig !== undefined ? dto.mercadopagoConfig : current?.mercadopagoConfig;
     const efiConfig = dto.efiConfig !== undefined ? dto.efiConfig : current?.efiConfig;
 
-    const isMpConfigured = () => {
-      console.log('[Debug] Verificando se Mercado Pago esta configurado', { mpConfig });
-      if (!mpConfig) {
-        console.log('[Debug] Mercado Pago nao configurado: mpConfig e nulo');
-        return false;
-      }
-      const mode = mpConfig.mode || 'production';
-      console.log('[Debug] Modo de operacao do Mercado Pago:', { mode });
-      if (mode === 'production' && mpConfig.production_access_token) {
-        console.log('[Debug] Mercado Pago configurado com production_access_token');
-        return true;
-      }
-      if (mpConfig.sandbox_access_token) {
-        console.log('[Debug] Mercado Pago configurado com sandbox_access_token');
-        return true;
-      }
-      if (mpConfig.production_access_token) {
-        console.log('[Debug] Mercado Pago configurado com production_access_token (fallback)');
-        return true;
-      }
-      console.log('[Debug] Mercado Pago nao configurado: nenhuma credencial encontrada');
-      return false;
-    };
-
-    const isEfiConfigured = () => {
-      console.log('[Debug] Verificando se Efi Bank esta configurado', { efiConfig });
-      if (!efiConfig) {
-        console.log('[Debug] Efi Bank nao configurado: efiConfig e nulo');
-        return false;
-      }
-      console.log('[Debug] Modo de operacao do Efi Bank:', { mode: efiConfig.mode });
-      if (efiConfig.mode === 'production' && efiConfig.production_client_id) {
-        console.log('[Debug] Efi Bank configurado com production_client_id');
-        return true;
-      }
-      if (efiConfig.sandbox_client_id) {
-        console.log('[Debug] Efi Bank configurado com sandbox_client_id');
-        return true;
-      }
-      console.log('[Debug] Efi Bank nao configurado: nenhuma credencial encontrada');
-      return false;
-    };
+    const isMpConfigured = () => !!mpConfig?.production_access_token;
+    const isEfiConfigured = () => !!efiConfig?.production_client_id;
 
     if (dto.activeGateway === 'mercadopago' && !isMpConfigured()) {
-      console.log('[Debug] Rejeitando ativacao: activeGateway Mercado Pago nao configurado');
       throw new BadRequestException('Configure as credenciais do Mercado Pago primeiro.');
     }
     if (dto.activeGateway === 'efi' && !isEfiConfigured()) {
-      console.log('[Debug] Rejeitando ativacao: activeGateway Efi Bank nao configurado');
       throw new BadRequestException('Configure as credenciais do Efí Bank primeiro.');
     }
 
-    if (dto.preferredPixGateway === 'mercadopago' && !isMpConfigured()) {
-      console.log('[Debug] Rejeitando ativacao: preferredPixGateway Mercado Pago nao configurado');
-      throw new BadRequestException('Configure as credenciais do Mercado Pago primeiro.');
-    }
-    if (dto.preferredPixGateway === 'efi' && !isEfiConfigured()) {
-      console.log('[Debug] Rejeitando ativacao: preferredPixGateway Efi Bank nao configurado');
-      throw new BadRequestException('Configure as credenciais do Efí Bank primeiro.');
-    }
-
-    console.log('[Debug] Salvando configuracoes via repository');
     return this.settingsRepo.upsert(dto as any);
   }
 
@@ -106,7 +53,7 @@ export class SettingsController {
   )
   async uploadCertificate(
     @UploadedFile() file: Express.Multer.File,
-    @Body('environment') environment: string,
+    @Body('environment') environment?: string,
   ) {
     console.log('[Debug] uploadCertificate acionado', { filename: file?.originalname, environment });
     if (!file) {
@@ -119,26 +66,17 @@ export class SettingsController {
       throw new BadRequestException('O arquivo deve ser .p12');
     }
 
-    const validEnvs = ['sandbox', 'production'];
-    if (!validEnvs.includes(environment)) {
-      throw new BadRequestException('Environment deve ser sandbox ou production.');
-    }
-
     const base64 = file.buffer.toString('base64');
-    const fieldName = environment === 'production'
-      ? 'production_certificate_base64'
-      : 'sandbox_certificate_base64';
-
     const current = await this.settingsRepo.get();
     const efiConfig = current?.efiConfig || {};
-    efiConfig[fieldName] = base64;
+    efiConfig['production_certificate_base64'] = base64;
 
     await this.settingsRepo.upsert({ efiConfig });
 
     return {
       success: true,
-      message: `Certificado ${environment === 'production' ? 'de produção' : 'de homologação'} enviado com sucesso.`,
-      environment,
+      message: 'Certificado de produção enviado com sucesso.',
+      environment: 'production',
     };
   }
 
@@ -179,17 +117,16 @@ export class SettingsController {
       throw new BadRequestException('Configure as credenciais da Efí primeiro.');
     }
 
-    const mode = efiConfig.mode || 'sandbox';
-    const clientId = mode === 'production' ? efiConfig.production_client_id : efiConfig.sandbox_client_id;
-    const clientSecret = mode === 'production' ? efiConfig.production_client_secret : efiConfig.sandbox_client_secret;
-    const certBase64 = mode === 'production' ? efiConfig.production_certificate_base64 : efiConfig.sandbox_certificate_base64;
+    const clientId = efiConfig.production_client_id;
+    const clientSecret = efiConfig.production_client_secret;
+    const certBase64 = efiConfig.production_certificate_base64;
 
     if (!clientId || !clientSecret) {
-      throw new BadRequestException(`Credenciais de ${mode === 'production' ? 'produção' : 'homologação'} não configuradas.`);
+      throw new BadRequestException('Credenciais de produção não configuradas.');
     }
 
     if (!certBase64) {
-      throw new BadRequestException(`Certificado de ${mode === 'production' ? 'produção' : 'homologação'} não enviado.`);
+      throw new BadRequestException('Certificado de produção não enviado.');
     }
 
     if (!efiConfig.pix_key) {
@@ -200,9 +137,7 @@ export class SettingsController {
       const https = await import('https');
       const certBuffer = Buffer.from(certBase64, 'base64');
 
-      const baseUrl = mode === 'production'
-        ? 'https://pix.api.efipay.com.br'
-        : 'https://pix-h.api.efipay.com.br';
+      const baseUrl = 'https://pix.api.efipay.com.br';
 
       const tokenResponse = await this.efiAuth(baseUrl, clientId, clientSecret, certBuffer);
       const accessToken = tokenResponse.access_token;

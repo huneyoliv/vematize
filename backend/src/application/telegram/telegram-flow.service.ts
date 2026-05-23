@@ -23,6 +23,17 @@ export class TelegramFlowService {
     this.bot = bot;
   }
 
+  async notifyPaymentExpired(chatId: number, saleId: string): Promise<void> {
+    if (!this.bot) return;
+    await this.bot.telegram
+      .sendMessage(
+        chatId,
+        '⏰ <b>Pagamento expirado!</b>\n\nSeu tempo de pagamento de 30 minutos terminou. A compra foi cancelada.\n\nInicie novamente quando quiser.',
+        { parse_mode: 'HTML' },
+      )
+      .catch(() => {});
+  }
+
   private escapeMarkdown(text: string): string {
     if (!text) return '';
     return text.replace(/([_*\[\]()~`>#\+\-=|{}.!])/g, '\\$1');
@@ -318,6 +329,8 @@ export class TelegramFlowService {
   }
 
   private async handleBuy(ctx: any, productId: string, user: any) {
+    const chatId = ctx.chat?.id;
+
     if (ctx.callbackQuery) {
       await ctx.editMessageText('⏳ Preparando seu pagamento...').catch(() => {});
     } else {
@@ -329,14 +342,15 @@ export class TelegramFlowService {
         productId,
         userId: user.id,
         platform: 'telegram',
-        telegramChatId: ctx.chat.id,
+        telegramChatId: chatId,
         couponCode: user.interactionData?.appliedCoupon,
+        onExpired: async (saleId) => {
+          if (chatId) await this.notifyPaymentExpired(chatId, saleId);
+          await this.userRepo.update(user.id, { interactionData: {} }).catch(() => {});
+        },
       });
 
-      let msg = `✅ <b>Pagamento Gerado!</b>\n\n`;
-      msg += `Use o código abaixo para pagar via Pix:\n\n`;
-      msg += `<code>${result.qrCode}</code>\n\n`;
-      msg += `⏰ Expira em 30 minutos.`;
+      await this.userRepo.update(user.id, { interactionData: {} });
 
       const kb: any[][] = [];
       if (result.ticketUrl) {
@@ -344,10 +358,26 @@ export class TelegramFlowService {
       }
       kb.push([{ text: '⬅️ Voltar ao Início', callback_data: 'MAIN_MENU' }]);
 
-      await ctx.editMessageText(msg, {
-        parse_mode: 'HTML',
-        reply_markup: { inline_keyboard: kb },
-      });
+      if (result.qrCodeWithLogo) {
+        const base64Data = result.qrCodeWithLogo.replace(/^data:image\/png;base64,/, '');
+        const imgBuffer = Buffer.from(base64Data, 'base64');
+
+        await ctx.editMessageText(
+          '✅ <b>Pagamento Gerado!</b>\n\nEscaneie o QR Code abaixo para pagar via Pix.\nOu copie o código Pix no próximo campo.\n\n⏰ Expira em <b>30 minutos</b>.',
+          { parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } },
+        ).catch(() => {});
+
+        await ctx.replyWithPhoto(
+          { source: imgBuffer, filename: 'qrcode.png' },
+          { caption: `<code>${result.qrCode}</code>`, parse_mode: 'HTML' },
+        ).catch(() => {});
+      } else {
+        let msg = `✅ <b>Pagamento Gerado!</b>\n\nUse o código abaixo para pagar via Pix:\n\n<code>${result.qrCode}</code>\n\n⏰ Expira em <b>30 minutos</b>.`;
+        await ctx.editMessageText(msg, {
+          parse_mode: 'HTML',
+          reply_markup: { inline_keyboard: kb },
+        });
+      }
     } catch (error: any) {
       await ctx.editMessageText(`❌ ${error?.message || 'Erro ao gerar pagamento.'}`);
     }

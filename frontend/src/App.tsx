@@ -11,6 +11,7 @@ import CouponsPage from './components/pages/CouponsPage';
 import BotsListPage from './components/pages/BotsListPage';
 import BotsPage from './components/pages/BotsPage';
 import SettingsPage from './components/pages/SettingsPage';
+import CampaignPage from './components/pages/CampaignPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -56,6 +57,7 @@ function AppRoutes() {
       <Route path="/bots" element={<ProtectedRoute><BotsListPage /></ProtectedRoute>} />
       <Route path="/bots/:platform" element={<ProtectedRoute><BotsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+      <Route path="/campanhas" element={<ProtectedRoute><CampaignPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

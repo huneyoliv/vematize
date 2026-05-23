@@ -1009,17 +1009,28 @@ tr:hover td {
 
 select.input {
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 12px center;
-  padding-right: 36px;
+  background-position: right 14px center;
+  padding-right: 40px;
   cursor: pointer;
+  transition: border-color var(--transition), box-shadow var(--transition), background-color var(--transition);
+}
+
+select.input:hover {
+  border-color: var(--border);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+}
+
+select.input:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2322c55e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
 }
 
 select.input option {
-  background-color: var(--bg-card);
+  background-color: #1e293b;
   color: var(--text-primary);
-  padding: 8px;
+  padding: 10px;
+  font-size: 14px;
 }
 
 .table-actions {
@@ -1029,4 +1040,261 @@ select.input option {
 
 .stats-row {
   margin-bottom: 24px;
+}
+
+.checkbox-group {
+  margin-bottom: 20px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  padding: 14px 16px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+}
+
+.checkbox-label:hover {
+  border-color: var(--accent);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.checkbox-input {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  border: 2px solid var(--border);
+  border-radius: 5px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+  margin-top: 1px;
+  position: relative;
+}
+
+.checkbox-input:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-muted);
+}
+
+.checkbox-input:checked::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 0px;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #020617;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.checkbox-input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.checkbox-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.checkbox-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.checkbox-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.campaign-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .campaign-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.campaign-textarea {
+  resize: vertical;
+  min-height: 180px;
+  line-height: 1.6;
+  font-family: inherit;
+}
+
+.campaign-preview-card {
+  position: sticky;
+  top: 24px;
+}
+
+.telegram-preview {
+  background: #17212b;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 120px;
+}
+
+.telegram-preview-bubble {
+  background: #2b5278;
+  border-radius: 12px 12px 12px 2px;
+  padding: 10px 14px;
+  max-width: 90%;
+  display: inline-block;
+  width: 100%;
+}
+
+.telegram-preview-image {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.telegram-preview-image img {
+  width: 100%;
+  max-height: 200px;
+  object-fit: cover;
+  display: block;
+}
+
+.telegram-preview-text {
+  font-size: 14px;
+  color: #e8e8e8;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.telegram-preview-text b, .telegram-preview-text strong {
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.telegram-preview-text code {
+  font-family: ui-monospace, monospace;
+  background: rgba(255,255,255,0.1);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.telegram-preview-placeholder {
+  color: rgba(255,255,255,0.35);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.campaign-html-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--warning);
+  background: rgba(245, 158, 11, 0.1);
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.campaign-result-card {
+  margin-top: 16px;
+}
+
+.campaign-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.campaign-stat {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.campaign-stat-icon--total { color: var(--text-secondary); }
+.campaign-stat-icon--sent { color: var(--success); }
+.campaign-stat-icon--failed { color: var(--danger); }
+
+.campaign-stat > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.campaign-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  display: block;
+}
+
+.campaign-stat-value--success { color: var(--success); }
+.campaign-stat-value--danger { color: var(--danger); }
+
+.campaign-stat-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+.campaign-errors {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 14px;
+}
+
+.campaign-errors-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.campaign-error-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.campaign-error-item:last-child {
+  border-bottom: none;
+}
+
+.campaign-form-col,
+.campaign-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }

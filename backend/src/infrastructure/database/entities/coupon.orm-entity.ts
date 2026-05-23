@@ -23,6 +23,9 @@ export class CouponEntity {
   @Column({ default: 0 })
   currentUses: number;
 
+  @Column({ default: true })
+  limitToOneUsePerUser: boolean;
+
   @Column({ nullable: true })
   expiresAt: Date;
 

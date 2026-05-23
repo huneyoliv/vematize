@@ -22,12 +22,11 @@ export class EfiService {
     }
 
     const config = settings.efiConfig;
-    const isProd = config.mode === 'production';
-
+    console.log('[Debug] Inicializando instancia Efi Pay em producao');
     const options = {
-      sandbox: !isProd,
-      client_id: (isProd ? config.production_client_id : config.sandbox_client_id) as string,
-      client_secret: (isProd ? config.production_client_secret : config.sandbox_client_secret) as string,
+      sandbox: false,
+      client_id: config.production_client_id as string,
+      client_secret: config.production_client_secret as string,
       certificate: config.certificate,
       pem: true,
     };

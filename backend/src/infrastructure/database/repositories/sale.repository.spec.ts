@@ -78,4 +78,22 @@ describe('SaleRepository', () => {
     expect(ormRepo.findOne).toHaveBeenCalledWith({ where: { id: 'sale-789' } });
     expect(result).toEqual(expectedSale);
   });
+
+  it('deve retornar venda aprovada para cupom + usuário já utilizados', async () => {
+    const expectedSale = { id: 'sale-coupon', couponCode: 'DESC10', userId: 'user-1', status: 'approved' };
+    jest.spyOn(ormRepo, 'findOne').mockResolvedValue(expectedSale as any);
+
+    const result = await repository.findByCouponAndUser('DESC10', 'user-1');
+
+    expect(ormRepo.findOne).toHaveBeenCalledWith({ where: { couponCode: 'DESC10', userId: 'user-1', status: 'approved' } });
+    expect(result).toEqual(expectedSale);
+  });
+
+  it('deve retornar null quando cupom não foi usado pelo usuário', async () => {
+    jest.spyOn(ormRepo, 'findOne').mockResolvedValue(null);
+
+    const result = await repository.findByCouponAndUser('DESC10', 'user-2');
+
+    expect(result).toBeNull();
+  });
 });

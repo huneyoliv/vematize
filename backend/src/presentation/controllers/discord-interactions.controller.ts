@@ -36,14 +36,12 @@ export class DiscordInteractionsController {
 
     if (body?.type === 3 || body?.type === 5) {
       if (!signature || !timestamp || !rawBody) {
-        console.log('[Debug] Discord type=3/5 recebido sem assinatura. Rejeitando.');
         return res.status(401).json({ error: 'Assinatura obrigatória para este tipo de interação' });
       }
       try {
         const { verifyKey } = await import('discord-interactions');
         const isValid = await verifyKey(rawBody, signature, timestamp, config.publicKey);
         if (!isValid) {
-          console.log('[Debug] Assinatura Discord inválida para type=3/5. Rejeitando.');
           return res.status(401).json({ error: 'Assinatura inválida' });
         }
       } catch {
@@ -148,15 +146,11 @@ export class DiscordInteractionsController {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
       const actualDiscordUserId = userId || discordUserId;
 
-      console.log('[Debug] CHECKOUT customId processado', { productId, discordUserId, actualDiscordUserId });
-
       if (!productId || !uuidRegex.test(productId)) {
-        console.log('[Debug] Erro Discord: productId invalido no customId', { productId });
         return res.status(400).json({ error: 'Produto invalido' });
       }
 
       if (!actualDiscordUserId) {
-        console.log('[Debug] Erro Discord: discordUserId nao identificado');
         return res.status(400).json({ error: 'Usuario nao identificado' });
       }
 
@@ -219,6 +213,23 @@ export class DiscordInteractionsController {
             platform: 'discord',
             discordChannelId: parentChannelId,
             discordThreadId: threadId,
+            onExpired: async () => {
+              const appId = body.application_id;
+              const interactionToken = body.token;
+              await fetch(
+                `https://discord.com/api/v10/webhooks/${appId}/${interactionToken}/messages/@original`,
+                {
+                  method: 'PATCH',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    content: '⏰ **Pagamento expirado!** Seu tempo de 30 minutos terminou. Inicie novamente.',
+                    embeds: [],
+                    components: [],
+                    flags: 64,
+                  }),
+                },
+              ).catch(() => {});
+            },
           });
 
           const product = await this.productRepo.findById(productId);

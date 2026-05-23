@@ -135,7 +135,8 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const isMp = gateway === 'mercadopago';
-  const mode = isMp ? 'production' : (localConfig.mode || 'sandbox');
+  console.log('[Debug] Modo forcado para production no gateway', { gateway });
+  const mode = 'production';
 
   useEffect(() => {
     api.get('/api/settings/domain').then((res) => {
@@ -252,17 +253,9 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
           </div>
         )}
 
-        {!isMp && (
-          <ModeToggle
-            mode={mode}
-            onChange={(m) => update('mode', m)}
-            labels={{ off: 'Homologação', on: 'Produção' }}
-          />
-        )}
-
         <div style={{ marginTop: 20 }}>
           <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>
-            Credenciais de {modeLabel}
+            Credenciais de Produção
           </h3>
 
           {isMp ? (
@@ -326,18 +319,24 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
           ) : (
             <>
               <div className="form-group">
-                <label>Client ID ({modeLabel})</label>
+                <label>Client ID (Produção)</label>
                 <PasswordField
-                  value={mode === 'production' ? (localConfig.production_client_id || '') : (localConfig.sandbox_client_id || '')}
-                  onChange={(v) => update(mode === 'production' ? 'production_client_id' : 'sandbox_client_id', v)}
+                  value={localConfig.production_client_id || ''}
+                  onChange={(v) => {
+                    console.log('[Debug] Atualizando production_client_id');
+                    update('production_client_id', v);
+                  }}
                   placeholder="Client_Id_..."
                 />
               </div>
               <div className="form-group">
-                <label>Client Secret ({modeLabel})</label>
+                <label>Client Secret (Produção)</label>
                 <PasswordField
-                  value={mode === 'production' ? (localConfig.production_client_secret || '') : (localConfig.sandbox_client_secret || '')}
-                  onChange={(v) => update(mode === 'production' ? 'production_client_secret' : 'sandbox_client_secret', v)}
+                  value={localConfig.production_client_secret || ''}
+                  onChange={(v) => {
+                    console.log('[Debug] Atualizando production_client_secret');
+                    update('production_client_secret', v);
+                  }}
                   placeholder="Client_Secret_..."
                 />
               </div>
@@ -353,7 +352,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
 
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 16, marginTop: 8 }}>
                 <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 12, color: 'var(--text-primary)' }}>
-                  Certificado .p12 — {modeLabel}
+                  Certificado .p12 (Produção)
                 </h3>
 
                 {hasCert ? (
@@ -365,16 +364,16 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <CheckCircle size={18} style={{ color: 'var(--success)' }} />
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--success)' }}>
-                        Certificado de {modeLabel} enviado
+                        Certificado de Produção enviado
                       </span>
                     </div>
-                    <label htmlFor={`cert-reupload-${mode}`} style={{ cursor: 'pointer' }}>
+                    <label htmlFor="cert-reupload-production" style={{ cursor: 'pointer' }}>
                       <div className="btn btn-ghost btn-sm" style={{ gap: 6, pointerEvents: 'none' }}>
                         <RotateCw size={14} /> Reenviar
                       </div>
                       <input
                         type="file"
-                        id={`cert-reupload-${mode}`}
+                        id="cert-reupload-production"
                         accept=".p12"
                         onChange={handleUploadCert}
                         style={{ display: 'none' }}
@@ -383,7 +382,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
                     </label>
                   </div>
                 ) : (
-                  <label htmlFor={`cert-upload-${mode}`} style={{ cursor: 'pointer', display: 'block' }}>
+                  <label htmlFor="cert-upload-production" style={{ cursor: 'pointer', display: 'block' }}>
                     <div style={{
                       border: '2px dashed var(--border)', borderRadius: 'var(--radius-sm)',
                       padding: '24px', textAlign: 'center',
@@ -394,12 +393,12 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
                         {uploading ? 'Enviando...' : 'Clique para enviar o certificado .p12'}
                       </div>
                       <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                        Certificado de {modeLabel.toLowerCase()} da Efí
+                        Certificado de produção da Efí
                       </div>
                     </div>
                     <input
                       type="file"
-                      id={`cert-upload-${mode}`}
+                      id="cert-upload-production"
                       accept=".p12"
                       onChange={handleUploadCert}
                       style={{ display: 'none' }}
@@ -442,7 +441,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
                     </button>
                     {!hasCert && (
                       <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6, display: 'block' }}>
-                        Envie o certificado de {modeLabel.toLowerCase()} antes de registrar o webhook.
+                        Envie o certificado de produção antes de registrar o webhook.
                       </span>
                     )}
                   </>

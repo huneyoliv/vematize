@@ -26,6 +26,10 @@ export class SaleRepository {
     return this.repo.find({ where: { productId }, order: { createdAt: 'DESC' } });
   }
 
+  async findByCouponAndUser(couponCode: string, userId: string): Promise<SaleEntity | null> {
+    return this.repo.findOne({ where: { couponCode, userId, status: 'approved' } });
+  }
+
   async create(data: Partial<SaleEntity>): Promise<SaleEntity> {
     const entity = this.repo.create(data);
     return this.repo.save(entity);
@@ -45,18 +49,15 @@ export class SaleRepository {
   }
 
   async sumApprovedRevenue(): Promise<number> {
-    console.log('[Debug] Calculando receita total de vendas aprovadas');
     const result = await this.repo
       .createQueryBuilder('sale')
       .select('COALESCE(SUM(sale.totalPrice), 0)', 'total')
       .where('sale.status = :status', { status: 'approved' })
       .getRawOne();
-    console.log(`[Debug] Receita total calculada: ${result?.total}`);
     return parseFloat(result?.total || '0');
   }
 
   async findByPaymentId(paymentId: string): Promise<SaleEntity | null> {
-    console.log(`[Debug] Buscando venda por paymentId: ${paymentId}`);
     return this.repo
       .createQueryBuilder('sale')
       .where('sale.paymentGateway = :gateway', { gateway: 'mercadopago' })
@@ -65,12 +66,10 @@ export class SaleRepository {
   }
 
   async findByExternalReference(saleId: string): Promise<SaleEntity | null> {
-    console.log(`[Debug] Buscando venda por ID externo: ${saleId}`);
     return this.repo.findOne({ where: { id: saleId } });
   }
 
   async findByTxid(txid: string): Promise<SaleEntity | null> {
-    console.log(`[Debug] Buscando venda por txid: ${txid}`);
     return this.repo
       .createQueryBuilder('sale')
       .where('sale.paymentGateway = :gateway', { gateway: 'efi' })

@@ -10,6 +10,7 @@ import {
   Settings,
   LogOut,
   Zap,
+  Megaphone,
 } from 'lucide-react';
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
   { to: '/sales', label: 'Vendas', icon: ShoppingCart },
   { to: '/bots', label: 'Bots', icon: Bot },
   { to: '/coupons', label: 'Cupons', icon: Tag },
+  { to: '/campanhas', label: 'Campanhas', icon: Megaphone },
   { to: '/settings', label: 'Configurações', icon: Settings },
 ];
 

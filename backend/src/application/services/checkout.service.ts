@@ -1,9 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
+import * as QRCode from 'qrcode';
 import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
 import { SaleRepository } from '../../infrastructure/database/repositories/sale.repository';
 import { UserRepository } from '../../infrastructure/database/repositories/user.repository';
 import { CouponRepository } from '../../infrastructure/database/repositories/coupon.repository';
-import { PaymentGatewayService, ChargeResult } from './payment-gateway.service';
+import { SettingsRepository } from '../../infrastructure/database/repositories/settings.repository';
+import { PaymentGatewayService } from './payment-gateway.service';
 
 export interface CheckoutInput {
   productId: string;
@@ -13,6 +15,7 @@ export interface CheckoutInput {
   discordChannelId?: string;
   discordThreadId?: string;
   couponCode?: string;
+  onExpired?: (saleId: string) => Promise<void>;
 }
 
 export interface CheckoutResult {
@@ -20,6 +23,7 @@ export interface CheckoutResult {
   gateway: string;
   qrCode?: string;
   qrCodeBase64?: string;
+  qrCodeWithLogo?: string;
   ticketUrl?: string;
   paymentId?: string;
   txid?: string;
@@ -32,47 +36,46 @@ export class CheckoutService {
     private readonly saleRepo: SaleRepository,
     private readonly userRepo: UserRepository,
     private readonly couponRepo: CouponRepository,
+    private readonly settingsRepo: SettingsRepository,
     private readonly paymentGateway: PaymentGatewayService,
   ) {}
 
   async createCheckout(input: CheckoutInput): Promise<CheckoutResult> {
-    console.log('[Debug] Iniciando criacao de checkout', { productId: input.productId, userId: input.userId, platform: input.platform });
     const user = await this.userRepo.findById(input.userId);
-    if (!user) {
-      console.log('[Debug] Erro no checkout: Usuario nao encontrado', { userId: input.userId });
-      throw new BadRequestException('Usuario nao encontrado.');
-    }
+    if (!user) throw new BadRequestException('Usuario nao encontrado.');
 
     const product = await this.productRepo.findById(input.productId);
-    if (!product) {
-      console.log('[Debug] Erro no checkout: Produto nao encontrado', { productId: input.productId });
-      throw new BadRequestException('Produto nao encontrado.');
-    }
+    if (!product) throw new BadRequestException('Produto nao encontrado.');
 
     if (product.stock !== null && product.stock !== undefined && product.stock <= 0) {
       throw new BadRequestException('Produto sem estoque.');
     }
 
-    let finalPrice = Number(product.price);
-    if (
+    const isOfferActive =
       product.discountPrice &&
       product.offerExpiresAt &&
-      new Date(product.offerExpiresAt) > new Date()
-    ) {
-      finalPrice = Number(product.discountPrice);
-    }
+      new Date(product.offerExpiresAt) > new Date();
+
+    let finalPrice = isOfferActive ? Number(product.discountPrice) : Number(product.price);
 
     if (input.couponCode) {
       const coupon = await this.couponRepo.findByCode(input.couponCode);
       if (coupon && coupon.isActive) {
         const notExpired = !coupon.expiresAt || new Date(coupon.expiresAt) > new Date();
         const hasUses = !coupon.maxUses || coupon.currentUses < coupon.maxUses;
-        if (notExpired && hasUses) {
-          if (coupon.type === 'percentage') {
-            finalPrice = finalPrice - (finalPrice * coupon.value / 100);
-          } else {
-            finalPrice = finalPrice - coupon.value;
+
+        if (coupon.limitToOneUsePerUser) {
+          const previousUse = await this.saleRepo.findByCouponAndUser(input.couponCode, input.userId);
+          if (previousUse) {
+            throw new BadRequestException('Você já utilizou este cupom anteriormente.');
           }
+        }
+
+        if (notExpired && hasUses) {
+          finalPrice =
+            coupon.type === 'percentage'
+              ? finalPrice - (finalPrice * coupon.value) / 100
+              : finalPrice - coupon.value;
           if (finalPrice < 0) finalPrice = 0;
         }
       }
@@ -84,9 +87,7 @@ export class CheckoutService {
 
     if (product.stock !== null && product.stock !== undefined) {
       const reserved = await this.productRepo.reserveStock(input.productId, 1);
-      if (!reserved) {
-        throw new BadRequestException('Estoque insuficiente.');
-      }
+      if (!reserved) throw new BadRequestException('Estoque insuficiente.');
     }
 
     const sale = await this.saleRepo.create({
@@ -103,11 +104,7 @@ export class CheckoutService {
       paymentDetails: {},
     });
 
-    const charge = await this.paymentGateway.createCharge(
-      product.name,
-      finalPrice,
-      sale.id,
-    );
+    const charge = await this.paymentGateway.createCharge(product.name, finalPrice, sale.id);
 
     if (!charge.success) {
       await this.saleRepo.update(sale.id, { status: 'failed' });
@@ -128,14 +125,88 @@ export class CheckoutService {
       },
     });
 
+    let qrCodeWithLogo: string | undefined;
+    if (charge.qrCode) {
+      qrCodeWithLogo = await this.generateQrCodeWithLogo(charge.qrCode);
+    }
+
+    this.scheduleExpiration(sale.id, input);
+
     return {
       saleId: sale.id,
       gateway: charge.gateway,
       qrCode: charge.qrCode,
       qrCodeBase64: charge.qrCodeBase64,
+      qrCodeWithLogo,
       ticketUrl: charge.ticketUrl,
       paymentId: charge.paymentId,
       txid: charge.txid,
     };
+  }
+
+  private async generateQrCodeWithLogo(pixCode: string): Promise<string> {
+    try {
+      const settings = await this.settingsRepo.get();
+      const logoUrl = settings?.logoUrl;
+
+      const qrDataUrl = await QRCode.toDataURL(pixCode, {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 400,
+        color: { dark: '#000000', light: '#ffffff' },
+      });
+
+      if (!logoUrl) return qrDataUrl;
+
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const canvasModule = await (async () => { try { return require('canvas'); } catch { return null; } })();
+      if (!canvasModule) return qrDataUrl;
+
+      const { createCanvas, loadImage } = canvasModule;
+      const qrImage = await loadImage(qrDataUrl);
+      const size = 400;
+      const canvas = createCanvas(size, size);
+      const ctx = canvas.getContext('2d');
+
+      ctx.drawImage(qrImage, 0, 0, size, size);
+
+      const logoSize = Math.floor(size * 0.2);
+      const logoX = (size - logoSize) / 2;
+      const logoY = (size - logoSize) / 2;
+
+      const logo = await loadImage(logoUrl).catch(() => null);
+      if (logo) {
+        ctx.fillStyle = '#ffffff';
+        const padding = 6;
+        ctx.beginPath();
+        ctx.roundRect(logoX - padding, logoY - padding, logoSize + padding * 2, logoSize + padding * 2, 8);
+        ctx.fill();
+        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
+      }
+
+      return canvas.toDataURL('image/png');
+    } catch {
+      const qrDataUrl = await QRCode.toDataURL(pixCode, {
+        errorCorrectionLevel: 'H',
+        margin: 2,
+        width: 400,
+      });
+      return qrDataUrl;
+    }
+  }
+
+  private scheduleExpiration(saleId: string, input: CheckoutInput): void {
+    const THIRTY_MINUTES = 30 * 60 * 1000;
+
+    setTimeout(async () => {
+      const sale = await this.saleRepo.findById(saleId);
+      if (!sale || sale.status !== 'pending') return;
+
+      await this.saleRepo.update(saleId, { status: 'cancelled' });
+
+      if (input.onExpired) {
+        await input.onExpired(saleId).catch(() => {});
+      }
+    }, THIRTY_MINUTES);
   }
 }

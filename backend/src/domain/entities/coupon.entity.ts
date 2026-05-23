@@ -6,6 +6,7 @@ export class Coupon {
   description?: string;
   maxUses?: number;
   currentUses: number;
+  limitToOneUsePerUser: boolean;
   expiresAt?: Date;
   isActive: boolean;
   applicableProducts?: string[];

@@ -18,7 +18,7 @@ export default function CouponsPage() {
   const [coupons, setCoupons] = useState<Coupon[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ code: '', type: 'percentage', value: '', maxUses: '' });
+  const [form, setForm] = useState({ code: '', type: 'percentage', value: '', maxUses: '', limitToOneUsePerUser: true });
 
   const fetchCoupons = () => {
     api.get('/api/coupons').then((res) => {
@@ -37,7 +37,7 @@ export default function CouponsPage() {
       maxUses: form.maxUses ? parseInt(form.maxUses) : undefined,
     });
     setShowForm(false);
-    setForm({ code: '', type: 'percentage', value: '', maxUses: '' });
+    setForm({ code: '', type: 'percentage', value: '', maxUses: '', limitToOneUsePerUser: true });
     fetchCoupons();
   };
 
@@ -85,6 +85,20 @@ export default function CouponsPage() {
               <div className="form-group">
                 <label>Máximo de usos (vazio = ilimitado)</label>
                 <input className="input" type="number" value={form.maxUses} onChange={(e) => setForm({ ...form, maxUses: e.target.value })} />
+              </div>
+              <div className="form-group checkbox-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    className="checkbox-input"
+                    checked={form.limitToOneUsePerUser}
+                    onChange={(e) => setForm({ ...form, limitToOneUsePerUser: e.target.checked })}
+                  />
+                  <span className="checkbox-text">
+                    <span className="checkbox-title">Limitar a um uso por usuário</span>
+                    <span className="checkbox-hint">Cada usuário só poderá usar este cupom uma vez</span>
+                  </span>
+                </label>
               </div>
               <div className="dialog-actions">
                 <button type="button" className="btn btn-ghost" onClick={() => setShowForm(false)}>Cancelar</button>
