@@ -12,6 +12,7 @@ import BotsListPage from './components/pages/BotsListPage';
 import BotsPage from './components/pages/BotsPage';
 import SettingsPage from './components/pages/SettingsPage';
 import CampaignPage from './components/pages/CampaignPage';
+import GalleryPage from './components/pages/GalleryPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, loading } = useAuth();
@@ -58,6 +59,7 @@ function AppRoutes() {
       <Route path="/bots/:platform" element={<ProtectedRoute><BotsPage /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
       <Route path="/campanhas" element={<ProtectedRoute><CampaignPage /></ProtectedRoute>} />
+      <Route path="/gallery" element={<ProtectedRoute><GalleryPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );

@@ -60,3 +60,18 @@ func TestEfiVerifyHeader(t *testing.T) {
 		t.Error("Esperava rejeicao de mTLS com status FAILED")
 	}
 }
+
+func TestProcessMercadoPagoSignatureOptional(t *testing.T) {
+	var bodyBytes = []byte(`{"id": 123, "type": "payment"}`)
+	var headers = map[string]string{}
+	var queryParams = map[string]string{}
+
+	err := ProcessMercadoPago(nil, bodyBytes, headers, queryParams)
+	if err == nil {
+		t.Error("Esperava erro devido ao pool de banco nulo, mas obteve nil")
+	}
+
+	if err.Error() == "assinatura do webhook ausente" {
+		t.Error("Nao deveria falhar por assinatura ausente, mas falhou")
+	}
+}

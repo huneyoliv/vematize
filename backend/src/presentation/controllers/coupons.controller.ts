@@ -1,12 +1,16 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { CouponRepository } from '../../infrastructure/database/repositories/coupon.repository';
+import { SaleRepository } from '../../infrastructure/database/repositories/sale.repository';
 import { CreateCouponDto, UpdateCouponDto, ValidateCouponDto } from '../../application/dtos/coupon.dto';
 
 @Controller('api/coupons')
 @UseGuards(JwtAuthGuard)
 export class CouponsController {
-  constructor(private readonly couponRepo: CouponRepository) {}
+  constructor(
+    private readonly couponRepo: CouponRepository,
+    private readonly saleRepo: SaleRepository,
+  ) {}
 
   @Get()
   async findAll() {
@@ -54,6 +58,13 @@ export class CouponsController {
         return { valid: false, message: 'Cupom não aplicável a este produto.' };
       }
     }
+    if (coupon.limitToOneUsePerUser && dto.userId) {
+      const previousUse = await this.saleRepo.findByCouponAndUser(dto.code, dto.userId);
+      if (previousUse) {
+        return { valid: false, message: 'Você já utilizou este cupom anteriormente.' };
+      }
+    }
     return { valid: true, coupon };
   }
 }
+

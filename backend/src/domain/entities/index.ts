@@ -1,6 +1,7 @@
-export { User } from './user.entity';
-export { Product } from './product.entity';
-export { Sale } from './sale.entity';
-export { BotConfig } from './bot-config.entity';
-export { Coupon } from './coupon.entity';
-export { Settings } from './settings.entity';
+export * from './user.entity';
+export * from './product.entity';
+export * from './sale.entity';
+export * from './bot-config.entity';
+export * from './coupon.entity';
+export * from './settings.entity';
+export * from './gallery-image.entity';

@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { DiscordBotService } from './discord-bot.service';
 import { BotConfigRepository } from '../../infrastructure/database/repositories/bot-config.repository';
 import { UserRepository } from '../../infrastructure/database/repositories/user.repository';
+import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
 import { EmbedBuilder, TextChannel } from 'discord.js';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class DiscordDeliveryService {
     private readonly botService: DiscordBotService,
     private readonly botConfigRepo: BotConfigRepository,
     private readonly userRepo: UserRepository,
+    private readonly productRepo: ProductRepository,
   ) {}
 
   async deliver(sale: any, product: any): Promise<void> {
@@ -40,6 +42,12 @@ export class DiscordDeliveryService {
 
         if (product.productSubtype === 'activation_codes' && product.activationCodes?.length) {
           const code = product.activationCodes[0];
+          
+          await this.productRepo.update(product.id, {
+            activationCodes: product.activationCodes.slice(1),
+            activationCodesUsed: [...(product.activationCodesUsed || []), code],
+          });
+
           deliveryContent = `🎉 **Código de Ativação:**\n\`\`\`\n${code}\n\`\`\``;
         } else if (product.productSubtype === 'digital_file' && product.hostedFileUrl) {
           deliveryContent = `🎉 **Link para Download:**\n${product.hostedFileUrl}`;

@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"vematize-backend-go/services"
@@ -32,7 +33,7 @@ func HandleMercadoPago(pool *pgxpool.Pool) http.HandlerFunc {
 		headers := make(map[string]string)
 		for k, v := range r.Header {
 			if len(v) > 0 {
-				headers[k] = v[0]
+				headers[strings.ToLower(k)] = v[0]
 			}
 		}
 
@@ -79,7 +80,7 @@ func HandleEfi(pool *pgxpool.Pool) http.HandlerFunc {
 		headers := make(map[string]string)
 		for k, v := range r.Header {
 			if len(v) > 0 {
-				headers[k] = v[0]
+				headers[strings.ToLower(k)] = v[0]
 			}
 		}
 

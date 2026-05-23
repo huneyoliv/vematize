@@ -212,7 +212,7 @@ export default function GatewayConfigModal({ gateway, config, onClose, onSave }:
     ? 'Produção'
     : (mode === 'production' ? 'Produção' : 'Homologação');
 
-  const mpWebhookUrl = !isLocalhost ? `https://api.${domainValue}/api/mercadopago/webhook` : '';
+  const mpWebhookUrl = !isLocalhost ? `https://api.${domainValue}/api/webhook/mercadopago` : '';
   const efiWebhookUrl = !isLocalhost ? `https://api.${domainValue}/api/efi/webhook` : '';
 
   return (

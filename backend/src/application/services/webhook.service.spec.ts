@@ -3,6 +3,7 @@ import { WebhookService } from './webhook.service';
 import { SaleRepository } from '../../infrastructure/database/repositories/sale.repository';
 import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
 import { SettingsRepository } from '../../infrastructure/database/repositories/settings.repository';
+import { CouponRepository } from '../../infrastructure/database/repositories/coupon.repository';
 import { MercadoPagoService } from './mercadopago.service';
 import { EfiService } from './efi.service';
 import { DeliveryService } from './delivery.service';
@@ -44,6 +45,11 @@ describe('WebhookService', () => {
     get: jest.fn(),
   };
 
+  const mockCouponRepo = {
+    findByCode: jest.fn(),
+    incrementUses: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -54,6 +60,7 @@ describe('WebhookService', () => {
         { provide: EfiService, useValue: mockEfiService },
         { provide: DeliveryService, useValue: mockDeliveryService },
         { provide: SettingsRepository, useValue: mockSettingsRepo },
+        { provide: CouponRepository, useValue: mockCouponRepo },
       ],
     }).compile();
 

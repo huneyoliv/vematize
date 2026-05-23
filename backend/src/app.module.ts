@@ -12,6 +12,7 @@ import {
   BotConfigRepository,
   CouponRepository,
   SettingsRepository,
+  GalleryImageRepository,
 } from './infrastructure/database/repositories';
 import { JwtStrategy } from './presentation/guards/jwt.strategy';
 import { AuthController } from './presentation/controllers/auth.controller';
@@ -28,6 +29,7 @@ import { WebhookController } from './presentation/controllers/webhook.controller
 import { TelegramWebhookController } from './presentation/controllers/telegram-webhook.controller';
 import { DiscordInteractionsController } from './presentation/controllers/discord-interactions.controller';
 import { CampaignController } from './presentation/controllers/campaign.controller';
+import { GalleryController } from './presentation/controllers/gallery.controller';
 import { MercadoPagoService } from './application/services/mercadopago.service';
 import { EfiService } from './application/services/efi.service';
 import { PaymentGatewayService } from './application/services/payment-gateway.service';
@@ -40,6 +42,7 @@ import { TelegramDeliveryService } from './application/telegram/telegram-deliver
 import { DiscordBotService } from './application/discord/discord-bot.service';
 import { DiscordPanelService } from './application/discord/discord-panel.service';
 import { DiscordDeliveryService } from './application/discord/discord-delivery.service';
+import { ImgbbService } from './application/services/imgbb.service';
 
 @Module({
   imports: [
@@ -74,6 +77,7 @@ import { DiscordDeliveryService } from './application/discord/discord-delivery.s
     TelegramWebhookController,
     DiscordInteractionsController,
     CampaignController,
+    GalleryController,
   ],
   providers: [
     {
@@ -99,6 +103,8 @@ import { DiscordDeliveryService } from './application/discord/discord-delivery.s
     DiscordBotService,
     DiscordPanelService,
     DiscordDeliveryService,
+    ImgbbService,
+    GalleryImageRepository,
   ],
 })
 export class AppModule {}

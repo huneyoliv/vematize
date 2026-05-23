@@ -11,6 +11,7 @@ import {
   LogOut,
   Zap,
   Megaphone,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 const navItems = [
@@ -21,6 +22,7 @@ const navItems = [
   { to: '/bots', label: 'Bots', icon: Bot },
   { to: '/coupons', label: 'Cupons', icon: Tag },
   { to: '/campanhas', label: 'Campanhas', icon: Megaphone },
+  { to: '/gallery', label: 'Galeria', icon: ImageIcon },
   { to: '/settings', label: 'Configurações', icon: Settings },
 ];
 

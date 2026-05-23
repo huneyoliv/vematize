@@ -8,6 +8,7 @@ import {
   BotConfigEntity,
   CouponEntity,
   SettingsEntity,
+  GalleryImageEntity,
 } from './entities';
 
 @Module({
@@ -25,6 +26,7 @@ import {
           BotConfigEntity,
           CouponEntity,
           SettingsEntity,
+          GalleryImageEntity,
         ],
         synchronize: config.get('DB_SYNC', 'false') === 'true',
         logging: config.get('NODE_ENV') === 'development',
@@ -37,6 +39,7 @@ import {
       BotConfigEntity,
       CouponEntity,
       SettingsEntity,
+      GalleryImageEntity,
     ]),
   ],
   exports: [TypeOrmModule],

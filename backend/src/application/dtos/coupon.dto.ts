@@ -29,6 +29,10 @@ export class CreateCouponDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  limitToOneUsePerUser?: boolean;
+
+  @IsOptional()
   @IsArray()
   applicableProducts?: string[];
 
@@ -73,6 +77,10 @@ export class UpdateCouponDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsBoolean()
+  limitToOneUsePerUser?: boolean;
+
+  @IsOptional()
   @IsArray()
   applicableProducts?: string[];
 
@@ -92,4 +100,8 @@ export class ValidateCouponDto {
   @IsOptional()
   @IsString()
   productId?: string;
+
+  @IsOptional()
+  @IsString()
+  userId?: string;
 }

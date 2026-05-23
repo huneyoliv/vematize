@@ -4,6 +4,7 @@ import { BotConfigRepository } from '../../infrastructure/database/repositories/
 import { UserRepository } from '../../infrastructure/database/repositories/user.repository';
 import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
 import { CouponRepository } from '../../infrastructure/database/repositories/coupon.repository';
+import { SaleRepository } from '../../infrastructure/database/repositories/sale.repository';
 import { CheckoutService } from '../services/checkout.service';
 import type { BotFlow, BotStep, BotButton } from '../../domain/entities/bot-config.entity';
 
@@ -17,6 +18,7 @@ export class TelegramFlowService {
     private readonly productRepo: ProductRepository,
     private readonly checkoutService: CheckoutService,
     private readonly couponRepo: CouponRepository,
+    private readonly saleRepo: SaleRepository,
   ) {}
 
   setBotInstance(bot: Telegraf) {
@@ -171,6 +173,21 @@ export class TelegramFlowService {
       }
 
       case 'MAIN_MENU': {
+        const mainFlow = config.flows.find((f: BotFlow) => f.trigger === '/start');
+        if (mainFlow) {
+          const startStep = allSteps.find((s: BotStep) => s.id === mainFlow.startStepId);
+          if (startStep) await this.executeStep(ctx, startStep);
+        }
+        break;
+      }
+
+      case 'CANCEL_SALE': {
+        const saleId = payload;
+        const sale = await this.checkoutService['saleRepo'].findById(saleId);
+        if (sale && sale.status === 'pending') {
+          await this.checkoutService['saleRepo'].update(saleId, { status: 'cancelled' });
+        }
+        
         const mainFlow = config.flows.find((f: BotFlow) => f.trigger === '/start');
         if (mainFlow) {
           const startStep = allSteps.find((s: BotStep) => s.id === mainFlow.startStepId);
@@ -356,20 +373,21 @@ export class TelegramFlowService {
       if (result.ticketUrl) {
         kb.push([{ text: '🔗 Abrir no Navegador', url: result.ticketUrl }]);
       }
-      kb.push([{ text: '⬅️ Voltar ao Início', callback_data: 'MAIN_MENU' }]);
+      kb.push([{ text: '⬅️ Voltar ao Início', callback_data: `CANCEL_SALE:${result.saleId}` }]);
 
       if (result.qrCodeWithLogo) {
         const base64Data = result.qrCodeWithLogo.replace(/^data:image\/png;base64,/, '');
         const imgBuffer = Buffer.from(base64Data, 'base64');
 
-        await ctx.editMessageText(
-          '✅ <b>Pagamento Gerado!</b>\n\nEscaneie o QR Code abaixo para pagar via Pix.\nOu copie o código Pix no próximo campo.\n\n⏰ Expira em <b>30 minutos</b>.',
-          { parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } },
-        ).catch(() => {});
+        await ctx.deleteMessage().catch(() => {});
 
         await ctx.replyWithPhoto(
           { source: imgBuffer, filename: 'qrcode.png' },
-          { caption: `<code>${result.qrCode}</code>`, parse_mode: 'HTML' },
+          {
+            caption: `✅ <b>Pagamento Gerado!</b>\n\nEscaneie o QR Code acima para pagar via Pix.\n\n<b>Pix Copia e Cola:</b>\n<code>${result.qrCode}</code>\n\n⏰ Expira em <b>30 minutos</b>.`,
+            parse_mode: 'HTML',
+            reply_markup: { inline_keyboard: kb },
+          },
         ).catch(() => {});
       } else {
         let msg = `✅ <b>Pagamento Gerado!</b>\n\nUse o código abaixo para pagar via Pix:\n\n<code>${result.qrCode}</code>\n\n⏰ Expira em <b>30 minutos</b>.`;
@@ -428,6 +446,12 @@ export class TelegramFlowService {
       } else if (!isApplicable) {
         isValid = false;
         errorMessage = '❌ *Cupom não aplicável a este produto\\!*';
+      } else if (coupon.limitToOneUsePerUser) {
+        const previousUse = await this.saleRepo.findByCouponAndUser(couponCode, user.id);
+        if (previousUse) {
+          isValid = false;
+          errorMessage = '❌ *Você já utilizou este cupom anteriormente\\!*';
+        }
       }
     }
 

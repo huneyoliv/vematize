@@ -58,15 +58,23 @@ export class CampaignController {
 
     const result: CampaignResult = { total: targets.length, sent: 0, failed: 0, errors: [] };
 
+    let finalMessage = dto.message
+      .replace(/\*(.*?)\*/g, '<b>$1</b>')
+      .replace(/_(.*?)_/g, '<i>$1</i>')
+      .replace(/~(.*?)~/g, '<s>$1</s>')
+      .replace(/\|\|(.*?)\|\|/g, '<span class="tg-spoiler">$1</span>')
+      .replace(/`(.*?)`/g, '<code>$1</code>')
+      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>');
+
     for (const target of targets) {
       try {
         if (dto.imageUrl) {
           await bot.telegram.sendPhoto(target.telegramId, dto.imageUrl, {
-            caption: dto.message,
+            caption: finalMessage,
             parse_mode: 'HTML',
           });
         } else {
-          await bot.telegram.sendMessage(target.telegramId, dto.message, {
+          await bot.telegram.sendMessage(target.telegramId, finalMessage, {
             parse_mode: 'HTML',
           });
         }

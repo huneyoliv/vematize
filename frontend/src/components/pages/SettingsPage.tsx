@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import api from '../../services/api';
-import { Save, Settings2 } from 'lucide-react';
+import { Save, Settings2, Image as ImageIcon } from 'lucide-react';
 import GatewayConfigModal from '../settings/GatewayConfigModal';
+import GallerySelectorModal from '../settings/GallerySelectorModal';
 import PageLoading from '../layout/PageLoading';
 import mpLogo from './MP_RGB_HANDSHAKE_color_vertical.png';
 import efiLogo from './Efi-bank-logo.png';
@@ -44,6 +45,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saveMsg, setSaveMsg] = useState('');
   const [modalGateway, setModalGateway] = useState<'mercadopago' | 'efi' | null>(null);
+  const [showGallery, setShowGallery] = useState(false);
 
   useEffect(() => {
     api.get('/api/settings').then((res) => {
@@ -133,7 +135,12 @@ export default function SettingsPage() {
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>URL do Logo</label>
-            <input className="input" value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://..." />
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <input className="input" style={{ flex: 1 }} value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://..." />
+              <button type="button" className="btn btn-outline" onClick={() => setShowGallery(true)} title="Escolher da Galeria">
+                <ImageIcon size={18} />
+              </button>
+            </div>
           </div>
           <button type="submit" className="btn btn-primary" disabled={saving}>
             <Save size={16} /> {saving ? 'Salvando...' : 'Salvar'}
@@ -236,6 +243,16 @@ export default function SettingsPage() {
           onSave={(config) => {
             handleSaveGateway(modalGateway!, config);
             setModalGateway(null);
+          }}
+        />
+      )}
+
+      {showGallery && (
+        <GallerySelectorModal
+          onClose={() => setShowGallery(false)}
+          onSelect={(url) => {
+            setForm(prev => ({ ...prev, logoUrl: url }));
+            setShowGallery(false);
           }}
         />
       )}

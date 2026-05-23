@@ -38,6 +38,7 @@ services:
       - ADMIN_USER=${ADMIN_USER:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - DB_SYNC=${DB_SYNC:-false}
+      - IMGBB_API_KEY=${IMGBB_API_KEY}
     deploy:
       resources:
         limits:

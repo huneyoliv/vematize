@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import api from '../../services/api';
-import { Send, Users, Image, MessageSquare, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Send, Users, Image, MessageSquare, CheckCircle2, XCircle, AlertCircle, Bold, Italic, Underline, Strikethrough, Code, Link as LinkIcon, EyeOff } from 'lucide-react';
 
 interface CampaignResult {
   total: number;
@@ -14,6 +15,25 @@ export default function CampaignPage() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [error, setError] = useState('');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertFormat = (prefix: string, suffix: string) => {
+    const el = textareaRef.current;
+    if (!el) return;
+    const start = el.selectionStart;
+    const end = el.selectionEnd;
+    const text = form.message;
+    const before = text.substring(0, start);
+    const selected = text.substring(start, end);
+    const after = text.substring(end);
+    
+    setForm({ ...form, message: before + prefix + selected + suffix + after });
+    
+    setTimeout(() => {
+      el.focus();
+      el.setSelectionRange(start + prefix.length, end + prefix.length);
+    }, 0);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +53,6 @@ export default function CampaignPage() {
     setSending(false);
   };
 
-  const hasHtml = form.message.includes('<b>') || form.message.includes('<i>') || form.message.includes('<code>');
 
   return (
     <div>
@@ -61,15 +80,24 @@ export default function CampaignPage() {
                     <MessageSquare size={14} /> Mensagem
                   </span>
                 </label>
+                <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('*', '*')} title="Negrito"><Bold size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('_', '_')} title="Itálico"><Italic size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('~', '~')} title="Tachado"><Strikethrough size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('`', '`')} title="Monoespaçado"><Code size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('||', '||')} title="Spoiler"><EyeOff size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('[texto](', ')')} title="Link"><LinkIcon size={16} /></button>
+                </div>
                 <textarea
+                  ref={textareaRef}
                   className="input campaign-textarea"
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  placeholder="Digite sua mensagem aqui...&#10;&#10;Suporta HTML: <b>negrito</b>, <i>itálico</i>, <code>código</code>"
+                  placeholder="Digite sua mensagem usando a formatação do Telegram (*negrito*, _itálico_, ~tachado~)..."
                   required
                   rows={8}
                 />
-                <span className="settings-hint">Suporta formatação HTML: &lt;b&gt;, &lt;i&gt;, &lt;code&gt;, &lt;a href=&quot;...&quot;&gt;</span>
+                <span className="settings-hint">Utilize a barra acima para aplicar a formatação nativa do Telegram.</span>
               </div>
 
               <div className="form-group">
@@ -108,17 +136,27 @@ export default function CampaignPage() {
                 {form.message ? (
                   <div
                     className="telegram-preview-text"
-                    dangerouslySetInnerHTML={{ __html: form.message.replace(/\n/g, '<br/>') }}
+                    dangerouslySetInnerHTML={{ 
+                      __html: DOMPurify.sanitize(
+                        form.message
+                          .replace(/\n/g, '<br/>')
+                          .replace(/\*(.*?)\*/g, '<b>$1</b>')
+                          .replace(/_(.*?)_/g, '<i>$1</i>')
+                          .replace(/~(.*?)~/g, '<s>$1</s>')
+                          .replace(/\|\|(.*?)\|\|/g, '<span class="tg-spoiler">$1</span>')
+                          .replace(/`(.*?)`/g, '<code>$1</code>')
+                          .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>'),
+                        { 
+                          ALLOWED_TAGS: ['b', 'i', 'u', 's', 'code', 'pre', 'a', 'span', 'br'], 
+                          ALLOWED_ATTR: ['href', 'class'] 
+                        }
+                      ) 
+                    }}
                   />
                 ) : (
                   <span className="telegram-preview-placeholder">Sua mensagem aparecerá aqui...</span>
                 )}
               </div>
-              {hasHtml && (
-                <div className="campaign-html-badge">
-                  <AlertCircle size={12} /> Formatação HTML ativa
-                </div>
-              )}
             </div>
           </div>
 

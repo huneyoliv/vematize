@@ -40,7 +40,9 @@ func main() {
 	r.Use(middleware.Timeout(60 * time.Second))
 
 	r.Post("/api/webhook/mercadopago", handlers.HandleMercadoPago(pool))
+	r.Post("/api/webhook/mercadopago/", handlers.HandleMercadoPago(pool))
 	r.Post("/api/webhook/efi", handlers.HandleEfi(pool))
+	r.Post("/api/webhook/efi/", handlers.HandleEfi(pool))
 
 	port := os.Getenv("PORT")
 	if port == "" || port == "3001" {

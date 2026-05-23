@@ -4,6 +4,7 @@ import { BotConfigRepository } from '../../infrastructure/database/repositories/
 import { UserRepository } from '../../infrastructure/database/repositories/user.repository';
 import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
 import { CouponRepository } from '../../infrastructure/database/repositories/coupon.repository';
+import { SaleRepository } from '../../infrastructure/database/repositories/sale.repository';
 import { CheckoutService } from '../services/checkout.service';
 
 describe('TelegramFlowService', () => {
@@ -12,6 +13,7 @@ describe('TelegramFlowService', () => {
   let userRepo: any;
   let productRepo: any;
   let couponRepo: any;
+  let saleRepo: any;
   let checkoutService: any;
 
   const mockBotConfigRepo = {
@@ -31,6 +33,10 @@ describe('TelegramFlowService', () => {
     findByCode: jest.fn(),
   };
 
+  const mockSaleRepo = {
+    findByCouponAndUser: jest.fn(),
+  };
+
   const mockCheckoutService = {
     createCheckout: jest.fn(),
   };
@@ -43,6 +49,7 @@ describe('TelegramFlowService', () => {
         { provide: UserRepository, useValue: mockUserRepo },
         { provide: ProductRepository, useValue: mockProductRepo },
         { provide: CouponRepository, useValue: mockCouponRepo },
+        { provide: SaleRepository, useValue: mockSaleRepo },
         { provide: CheckoutService, useValue: mockCheckoutService },
       ],
     }).compile();
@@ -52,6 +59,7 @@ describe('TelegramFlowService', () => {
     userRepo = module.get(UserRepository);
     productRepo = module.get(ProductRepository);
     couponRepo = module.get(CouponRepository);
+    saleRepo = module.get(SaleRepository);
     checkoutService = module.get(CheckoutService);
   });
 
@@ -251,4 +259,51 @@ describe('TelegramFlowService', () => {
       expect.any(Object),
     );
   });
+
+  it('deve rejeitar cupom imediatamente caso o usuario ja o tenha utilizado anteriormente', async () => {
+    const ctx = {
+      message: { text: 'CUPOM_REPETIDO' },
+      from: { id: 111 },
+      chat: { id: 222 },
+      deleteMessage: jest.fn().mockResolvedValue(true),
+      telegram: {
+        editMessageText: jest.fn().mockResolvedValue(true),
+      },
+    };
+
+    const user = {
+      id: 'u-1',
+      telegramId: 111,
+      interactionState: 'WAITING_COUPON',
+      interactionData: {
+        productId: 'prod-123',
+        couponPromptMessageId: 1000,
+      },
+    };
+
+    const mockCoupon = {
+      code: 'CUPOM_REPETIDO',
+      isActive: true,
+      limitToOneUsePerUser: true,
+    };
+
+    mockUserRepo.findByTelegramId.mockResolvedValue(user);
+    mockCouponRepo.findByCode.mockResolvedValue(mockCoupon);
+    mockSaleRepo.findByCouponAndUser.mockResolvedValue({ id: 'sale-999', status: 'approved' }); // Venda pré-existente
+    mockBotConfigRepo.findByPlatform.mockResolvedValue({ flows: [{ trigger: '/start' }] });
+
+    await service.handleTextMessage(ctx);
+
+    expect(ctx.deleteMessage).toHaveBeenCalled();
+    expect(mockCouponRepo.findByCode).toHaveBeenCalledWith('CUPOM_REPETIDO');
+    expect(mockSaleRepo.findByCouponAndUser).toHaveBeenCalledWith('CUPOM_REPETIDO', 'u-1');
+    expect(ctx.telegram.editMessageText).toHaveBeenCalledWith(
+      222,
+      1000,
+      undefined,
+      expect.stringContaining('Você já utilizou este cupom anteriormente'),
+      expect.any(Object),
+    );
+  });
 });
+

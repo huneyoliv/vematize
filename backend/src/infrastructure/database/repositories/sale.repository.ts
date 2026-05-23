@@ -61,7 +61,7 @@ export class SaleRepository {
     return this.repo
       .createQueryBuilder('sale')
       .where('sale.paymentGateway = :gateway', { gateway: 'mercadopago' })
-      .andWhere("sale.paymentDetails->>'paymentId' = :paymentId", { paymentId })
+      .andWhere("sale.\"paymentDetails\"->>'paymentId' = :paymentId", { paymentId })
       .getOne();
   }
 
@@ -73,7 +73,7 @@ export class SaleRepository {
     return this.repo
       .createQueryBuilder('sale')
       .where('sale.paymentGateway = :gateway', { gateway: 'efi' })
-      .andWhere("sale.paymentDetails->>'txid' = :txid", { txid })
+      .andWhere("sale.\"paymentDetails\"->>'txid' = :txid", { txid })
       .getOne();
   }
 }

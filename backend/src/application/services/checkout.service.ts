@@ -159,33 +159,31 @@ export class CheckoutService {
       if (!logoUrl) return qrDataUrl;
 
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const canvasModule = await (async () => { try { return require('canvas'); } catch { return null; } })();
-      if (!canvasModule) return qrDataUrl;
+      const Jimp = require('jimp');
+      const qrBuffer = Buffer.from(qrDataUrl.replace(/^data:image\/png;base64,/, ''), 'base64');
+      
+      const qrJimp = await Jimp.read(qrBuffer);
+      const logoJimp = await Jimp.read(logoUrl).catch(() => null);
 
-      const { createCanvas, loadImage } = canvasModule;
-      const qrImage = await loadImage(qrDataUrl);
-      const size = 400;
-      const canvas = createCanvas(size, size);
-      const ctx = canvas.getContext('2d');
+      if (!logoJimp) return qrDataUrl;
 
-      ctx.drawImage(qrImage, 0, 0, size, size);
+      const qrWidth = qrJimp.bitmap.width;
+      const logoSize = Math.floor(qrWidth * 0.2);
+      logoJimp.resize(logoSize, logoSize);
 
-      const logoSize = Math.floor(size * 0.2);
-      const logoX = (size - logoSize) / 2;
-      const logoY = (size - logoSize) / 2;
+      const x = (qrWidth - logoSize) / 2;
+      const y = (qrWidth - logoSize) / 2;
 
-      const logo = await loadImage(logoUrl).catch(() => null);
-      if (logo) {
-        ctx.fillStyle = '#ffffff';
-        const padding = 6;
-        ctx.beginPath();
-        ctx.roundRect(logoX - padding, logoY - padding, logoSize + padding * 2, logoSize + padding * 2, 8);
-        ctx.fill();
-        ctx.drawImage(logo, logoX, logoY, logoSize, logoSize);
-      }
+      const padding = 6;
+      const bgSize = logoSize + padding * 2;
+      const whiteBg = new Jimp(bgSize, bgSize, 0xFFFFFFFF);
 
-      return canvas.toDataURL('image/png');
-    } catch {
+      qrJimp.composite(whiteBg, x - padding, y - padding);
+      qrJimp.composite(logoJimp, x, y);
+
+      return await qrJimp.getBase64Async(Jimp.MIME_PNG);
+    } catch (err: any) {
+      console.error('[CheckoutService] Erro ao gerar QR Code com Jimp:', err?.message);
       const qrDataUrl = await QRCode.toDataURL(pixCode, {
         errorCorrectionLevel: 'H',
         margin: 2,

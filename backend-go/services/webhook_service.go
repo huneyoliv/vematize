@@ -112,26 +112,14 @@ func ProcessMercadoPago(pool *pgxpool.Pool, bodyBytes []byte, headers map[string
 		}
 	}
 
-	if xSignature != "" || xRequestId != "" || secret != "" {
-		if secret == "" {
-			log.Println("[Debug] Erro MP: webhook_secret nao configurado")
-			return errors.New("webhook_secret nao configurado")
-		}
-		if xSignature == "" || xRequestId == "" {
-			log.Println("[Debug] Erro MP: Assinatura ou Request ID ausente")
-			return errors.New("assinatura do webhook ausente")
-		}
+	if secret != "" && xSignature != "" && xRequestId != "" {
 		if dataID == "" {
-			log.Println("[Debug] Erro MP: ID de pagamento ausente")
 			return errors.New("id de pagamento ausente na assinatura")
 		}
 
-		log.Println("[Debug] Validando assinatura MercadoPago no Webhook Service")
 		if !ValidateMPSignature(secret, xSignature, xRequestId, dataID) {
-			log.Println("[Debug] Assinatura do webhook MercadoPago invalida")
 			return errors.New("assinatura do webhook invalida")
 		}
-		log.Println("[Debug] Assinatura do webhook MercadoPago validada com sucesso")
 	}
 
 	if body.Type != "payment" && body.Topic != "payment" {

@@ -19,13 +19,34 @@ export class ProductRepository {
   }
 
   async create(data: Partial<ProductEntity>): Promise<ProductEntity> {
+    if (data.productSubtype === 'activation_codes') {
+      data.stock = data.activationCodes ? data.activationCodes.length : 0;
+    }
     const entity = this.repo.create(data);
     return this.repo.save(entity);
   }
 
   async update(id: string, data: Partial<ProductEntity>): Promise<ProductEntity | null> {
-    await this.repo.update(id, data);
-    return this.findById(id);
+    const existing = await this.findById(id);
+    if (!existing) return null;
+
+    const finalSubtype = data.productSubtype || existing.productSubtype;
+
+    if (finalSubtype === 'activation_codes') {
+      if (data.activationCodes !== undefined) {
+        data.stock = data.activationCodes ? data.activationCodes.length : 0;
+      } else {
+        data.stock = existing.activationCodes ? existing.activationCodes.length : 0;
+      }
+    } else {
+      if (data.productSubtype && data.productSubtype !== 'activation_codes') {
+        data.activationCodes = [];
+        data.activationCodesUsed = [];
+      }
+    }
+
+    const merged = this.repo.merge(existing, data);
+    return this.repo.save(merged);
   }
 
   async delete(id: string): Promise<boolean> {

@@ -53,7 +53,7 @@ describe('SaleRepository', () => {
 
     expect(ormRepo.createQueryBuilder).toHaveBeenCalledWith('sale');
     expect(mockQueryBuilder.where).toHaveBeenCalledWith('sale.paymentGateway = :gateway', { gateway: 'mercadopago' });
-    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith("sale.paymentDetails->>'paymentId' = :paymentId", { paymentId: 'pay-999' });
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith("sale.\"paymentDetails\"->>'paymentId' = :paymentId", { paymentId: 'pay-999' });
     expect(result).toEqual(expectedSale);
   });
 
@@ -65,7 +65,7 @@ describe('SaleRepository', () => {
 
     expect(ormRepo.createQueryBuilder).toHaveBeenCalledWith('sale');
     expect(mockQueryBuilder.where).toHaveBeenCalledWith('sale.paymentGateway = :gateway', { gateway: 'efi' });
-    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith("sale.paymentDetails->>'txid' = :txid", { txid: 'tx-888' });
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith("sale.\"paymentDetails\"->>'txid' = :txid", { txid: 'tx-888' });
     expect(result).toEqual(expectedSale);
   });
 

@@ -28,6 +28,29 @@ export class WebhookController {
     }
   }
 
+  @Post('mercadopago/retry')
+  async mercadopagoRetry(@Req() req: Request, @Body() body: { paymentId: string }, @Res() res: Response) {
+    const secret = req.headers['x-internal-secret'];
+    if (!secret || secret !== this.internalSecret) {
+      throw new UnauthorizedException('Acesso nao autorizado');
+    }
+    if (!body.paymentId) {
+      return res.status(400).json({ success: false, message: 'paymentId é obrigatório' });
+    }
+    console.log(`[Webhook MP] Retry manual para paymentId: ${body.paymentId}`);
+    try {
+      await this.webhookService.processMercadoPago(
+        { data: { id: body.paymentId }, type: 'payment' },
+        {},
+        {},
+      );
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error('[Webhook MP Retry] Erro:', error?.message);
+      return res.status(500).json({ success: false, message: error?.message });
+    }
+  }
+
   @Post('efi')
   async efi(@Req() req: Request, @Res() res: Response) {
     console.log('[Debug] Endpoint webhook Efi acionado');
