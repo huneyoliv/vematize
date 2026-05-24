@@ -24,10 +24,10 @@ export class ProductEntity {
   isTelegramGroupAccess: boolean;
 
   @Column({ nullable: true })
-  telegramGroupId: string | null;
+  telegramGroupId: string;
 
   @Column({ nullable: true })
-  discordSubscriptionRoleId: string | null;
+  discordSubscriptionRoleId: string;
 
   @Column({ default: 'standard' })
   productSubtype: string;
