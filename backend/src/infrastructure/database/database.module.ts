@@ -9,6 +9,7 @@ import {
   CouponEntity,
   SettingsEntity,
   GalleryImageEntity,
+  SubscriptionEntity,
 } from './entities';
 
 @Module({
@@ -27,6 +28,7 @@ import {
           CouponEntity,
           SettingsEntity,
           GalleryImageEntity,
+          SubscriptionEntity,
         ],
         synchronize: config.get('DB_SYNC', 'false') === 'true',
         logging: config.get('NODE_ENV') === 'development',
@@ -40,6 +42,7 @@ import {
       CouponEntity,
       SettingsEntity,
       GalleryImageEntity,
+      SubscriptionEntity,
     ]),
   ],
   exports: [TypeOrmModule],

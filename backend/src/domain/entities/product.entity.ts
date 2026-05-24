@@ -6,7 +6,8 @@ export class Product {
   type: 'product' | 'subscription';
   durationDays?: number;
   isTelegramGroupAccess?: boolean;
-  telegramGroupId?: string;
+  telegramGroupId?: string | null;
+  discordSubscriptionRoleId?: string | null;
   productSubtype?: 'standard' | 'digital_file' | 'activation_codes' | 'media_pack';
   stock?: number;
   activationCodes?: string[];

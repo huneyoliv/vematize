@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Telegraf } from 'telegraf';
 import { BotConfigRepository } from '../../infrastructure/database/repositories/bot-config.repository';
 import { ProductRepository } from '../../infrastructure/database/repositories/product.repository';
+import { SubscriptionService } from '../services/subscription.service';
 
 @Injectable()
 export class TelegramDeliveryService {
@@ -10,10 +11,12 @@ export class TelegramDeliveryService {
   constructor(
     private readonly botConfigRepo: BotConfigRepository,
     private readonly productRepo: ProductRepository,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   setBotInstance(bot: Telegraf) {
     this.bot = bot;
+    this.subscriptionService.setTelegramBot(bot);
   }
 
   async deliver(sale: any, product: any): Promise<void> {
@@ -63,9 +66,24 @@ export class TelegramDeliveryService {
 
     if (product.isTelegramGroupAccess && product.telegramGroupId) {
       try {
-        const inviteLink = await this.bot.telegram.createChatInviteLink(product.telegramGroupId, {
-          member_limit: 1,
-        });
+        let inviteLinkOptions: any = {};
+        
+        if (product.type === 'subscription') {
+          // Link com expiração de 30 minutos (1800 segundos) e limite de 1 membro
+          const expireDate = Math.floor(Date.now() / 1000) + 1800;
+          inviteLinkOptions = {
+            member_limit: 1,
+            expire_date: expireDate,
+          };
+        } else {
+          // Produto normal (vitalício no grupo): sem expiração, mas também limite de 1 membro para segurança
+          inviteLinkOptions = {
+            member_limit: 1,
+          };
+        }
+
+        const inviteLink = await this.bot.telegram.createChatInviteLink(product.telegramGroupId, inviteLinkOptions);
+        
         await this.bot.telegram.sendMessage(
           sale.telegramChatId,
           `🔗 *Acesse seu grupo exclusivo:*\n${inviteLink.invite_link}`,
@@ -74,6 +92,19 @@ export class TelegramDeliveryService {
       } catch (error: any) {
         console.error('[Telegram Delivery] Erro ao criar invite link:', error?.message);
       }
+    }
+
+    // Ativar assinatura se for o caso
+    if (product.type === 'subscription' && product.durationDays) {
+      await this.subscriptionService.activate({
+        userId: sale.userId,
+        productId: product.id,
+        saleId: sale.id,
+        platform: 'telegram',
+        durationDays: product.durationDays,
+        telegramChatId: sale.telegramChatId,
+        telegramGroupId: product.telegramGroupId,
+      });
     }
   }
 }

@@ -5,3 +5,4 @@ export { BotConfigEntity } from './bot-config.orm-entity';
 export { CouponEntity } from './coupon.orm-entity';
 export { SettingsEntity } from './settings.orm-entity';
 export { GalleryImageEntity } from './gallery-image.orm-entity';
+export { SubscriptionEntity } from './subscription.orm-entity';

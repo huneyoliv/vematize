@@ -26,6 +26,9 @@ interface Product {
   name: string;
   price: number;
   description?: string;
+  type: string;
+  telegramGroupId?: string;
+  discordSubscriptionRoleId?: string;
 }
 
 interface DiscordPanelsProps {
@@ -33,11 +36,12 @@ interface DiscordPanelsProps {
   onChange: (panels: SalesPanel[]) => void;
   onSave: (panels: SalesPanel[]) => void;
   saving: boolean;
+  platform?: string;
 }
 
 const uid = () => Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-export default function DiscordPanelsManager({ panels, onChange, onSave, saving }: DiscordPanelsProps) {
+export default function DiscordPanelsManager({ panels, onChange, onSave, saving, platform }: DiscordPanelsProps) {
   const [expandedPanel, setExpandedPanel] = useState<number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
 
@@ -46,6 +50,15 @@ export default function DiscordPanelsManager({ panels, onChange, onSave, saving 
       setProducts(res.data || []);
     }).catch(() => {});
   }, []);
+
+  const filteredProducts = products.filter((product) => {
+    if (product.type !== 'subscription') return true;
+    if (platform === 'telegram') return !!product.telegramGroupId;
+    if (platform === 'discord') return !!product.discordSubscriptionRoleId;
+    return true;
+  });
+
+  const allowedProductIds = new Set(filteredProducts.map((product) => product.id));
 
   const addPanel = () => {
     const newPanel: SalesPanel = {
@@ -208,11 +221,11 @@ export default function DiscordPanelsManager({ panels, onChange, onSave, saving 
                       <div style={{ margin: '8px 0 8px', fontSize: 14, fontWeight: 600 }}>
                         Produtos ({panel.productIds.length} selecionados)
                       </div>
-                      {products.length === 0 ? (
+                      {filteredProducts.length === 0 ? (
                         <p style={{ fontSize: 13, color: 'var(--text-secondary)' }}>Nenhum produto cadastrado.</p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                          {products.map((product) => (
+                          {filteredProducts.map((product) => (
                             <label key={product.id} style={{
                               display: 'flex', alignItems: 'center', gap: 10,
                               padding: '10px 12px',
@@ -270,7 +283,7 @@ export default function DiscordPanelsManager({ panels, onChange, onSave, saving 
                       <DiscordEmbedPreview
                         embedConfig={panel.embedConfig}
                         productIds={panel.productIds}
-                        products={products}
+                        products={filteredProducts}
                         panelName={panel.name}
                       />
                       <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', maxWidth: 320 }}>
@@ -288,7 +301,10 @@ export default function DiscordPanelsManager({ panels, onChange, onSave, saving 
               {panels.length} painel(is) configurado(s)
             </span>
             <button type="button" className="btn btn-primary" disabled={saving}
-              onClick={() => onSave(panels)}>
+              onClick={() => onSave(panels.map((panel) => ({
+                ...panel,
+                productIds: panel.productIds.filter((id) => allowedProductIds.has(id)),
+              })))}>
               <Save size={16} /> {saving ? 'Salvando...' : 'Salvar Painéis'}
             </button>
           </div>

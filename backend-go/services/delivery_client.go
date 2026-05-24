@@ -19,7 +19,12 @@ func TriggerInternalDelivery(saleID string) error {
 		port = "3001"
 	}
 
-	url := fmt.Sprintf("http://localhost:%s/api/webhook/internal-deliver", port)
+	host := os.Getenv("NESTJS_HOST")
+	if host == "" {
+		host = "localhost"
+	}
+
+	url := fmt.Sprintf("http://%s:%s/api/webhook/internal-deliver", host, port)
 	
 	reqBody, err := json.Marshal(map[string]string{
 		"saleId": saleID,
@@ -56,7 +61,7 @@ func TriggerInternalDelivery(saleID string) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		log.Printf("[Debug] NestJS retornou erro HTTP %d na entrega. Resposta: %s", resp.StatusCode, string(bodyBytes))
 		return fmt.Errorf("falha ao acionar entrega no NestJS status %d", resp.StatusCode)

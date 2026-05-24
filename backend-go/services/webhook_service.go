@@ -97,6 +97,8 @@ func ProcessMercadoPago(pool *pgxpool.Pool, bodyBytes []byte, headers map[string
 		dataID = fmt.Sprintf("%v", body.ID)
 	} else if queryID, exists := queryParams["data.id"]; exists {
 		dataID = queryID
+	} else if queryID, exists := queryParams["id"]; exists {
+		dataID = queryID
 	}
 
 	settings, err := db.GetDecryptedSettings(pool)
@@ -112,7 +114,8 @@ func ProcessMercadoPago(pool *pgxpool.Pool, bodyBytes []byte, headers map[string
 		}
 	}
 
-	if secret != "" && xSignature != "" && xRequestId != "" {
+	isIPN := queryParams["topic"] != "" || body.Topic != ""
+	if secret != "" && xSignature != "" && xRequestId != "" && !isIPN {
 		if dataID == "" {
 			return errors.New("id de pagamento ausente na assinatura")
 		}

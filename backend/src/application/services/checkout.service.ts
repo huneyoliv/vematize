@@ -21,6 +21,7 @@ export interface CheckoutInput {
 export interface CheckoutResult {
   saleId: string;
   gateway: string;
+  totalPrice: number;
   qrCode?: string;
   qrCodeBase64?: string;
   qrCodeWithLogo?: string;
@@ -46,6 +47,18 @@ export class CheckoutService {
 
     const product = await this.productRepo.findById(input.productId);
     if (!product) throw new BadRequestException('Produto nao encontrado.');
+
+    if (product.type === 'subscription' && input.platform !== 'api') {
+      const allowsTelegram = !!product.telegramGroupId || !!product.isTelegramGroupAccess;
+      const allowsDiscord = !!product.discordSubscriptionRoleId;
+
+      if (input.platform === 'telegram' && !allowsTelegram) {
+        throw new BadRequestException('Assinatura não disponível para Telegram.');
+      }
+      if (input.platform === 'discord' && !allowsDiscord) {
+        throw new BadRequestException('Assinatura não disponível para Discord.');
+      }
+    }
 
     if (product.stock !== null && product.stock !== undefined && product.stock <= 0) {
       throw new BadRequestException('Produto sem estoque.');
@@ -135,6 +148,7 @@ export class CheckoutService {
     return {
       saleId: sale.id,
       gateway: charge.gateway,
+      totalPrice: finalPrice,
       qrCode: charge.qrCode,
       qrCodeBase64: charge.qrCodeBase64,
       qrCodeWithLogo,

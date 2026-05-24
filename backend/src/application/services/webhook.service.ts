@@ -30,7 +30,8 @@ export class WebhookService {
     const settings = await this.settingsRepo.get();
     const secret = settings?.mercadopagoConfig?.webhook_secret;
 
-    if (secret && xSignature && xRequestId) {
+    const isIpn = query?.['topic'] || body?.topic;
+    if (secret && xSignature && xRequestId && !isIpn) {
       const parts = xSignature.split(',');
       let ts = '';
       let v1 = '';
@@ -39,7 +40,7 @@ export class WebhookService {
         if (key === 'ts') ts = val;
         if (key === 'v1') v1 = val;
       }
-      const dataId = query?.['data.id'] || body?.data?.id || body?.id;
+      const dataId = query?.['data.id'] || query?.['id'] || body?.data?.id || body?.id;
 
       if (ts && v1 && dataId) {
         const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
@@ -54,6 +55,7 @@ export class WebhookService {
 
     const paymentId =
       query?.['data.id'] ||
+      query?.['id'] ||
       body?.data?.id ||
       body?.id ||
       body?.resource?.split('/').pop();

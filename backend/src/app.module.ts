@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from './infrastructure/database/database.module';
 import {
@@ -13,6 +14,7 @@ import {
   CouponRepository,
   SettingsRepository,
   GalleryImageRepository,
+  SubscriptionRepository,
 } from './infrastructure/database/repositories';
 import { JwtStrategy } from './presentation/guards/jwt.strategy';
 import { AuthController } from './presentation/controllers/auth.controller';
@@ -43,6 +45,8 @@ import { DiscordBotService } from './application/discord/discord-bot.service';
 import { DiscordPanelService } from './application/discord/discord-panel.service';
 import { DiscordDeliveryService } from './application/discord/discord-delivery.service';
 import { ImgbbService } from './application/services/imgbb.service';
+import { SubscriptionService } from './application/services/subscription.service';
+import { SubscriptionSchedulerService } from './application/services/subscription-scheduler.service';
 
 @Module({
   imports: [
@@ -61,6 +65,7 @@ import { ImgbbService } from './application/services/imgbb.service';
       }),
     }),
     DatabaseModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [
     HealthController,
@@ -105,6 +110,9 @@ import { ImgbbService } from './application/services/imgbb.service';
     DiscordDeliveryService,
     ImgbbService,
     GalleryImageRepository,
+    SubscriptionRepository,
+    SubscriptionService,
+    SubscriptionSchedulerService,
   ],
 })
 export class AppModule {}

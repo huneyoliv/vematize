@@ -25,7 +25,11 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
-  telegramGroupId?: string;
+  telegramGroupId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  discordSubscriptionRoleId?: string | null;
 
   @IsOptional()
   @IsEnum(['standard', 'digital_file', 'activation_codes', 'media_pack'])
@@ -84,7 +88,11 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  telegramGroupId?: string;
+  telegramGroupId?: string | null;
+
+  @IsOptional()
+  @IsString()
+  discordSubscriptionRoleId?: string | null;
 
   @IsOptional()
   @IsEnum(['standard', 'digital_file', 'activation_codes', 'media_pack'])

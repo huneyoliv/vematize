@@ -13,7 +13,7 @@ jest.mock('qrcode', () => ({
 }));
 
 const mockUser = { id: 'user-1', name: 'Test' };
-const mockProduct = { id: 'prod-1', name: 'Produto', price: 100, stock: null };
+const mockProduct = { id: 'prod-1', name: 'Produto', price: 100, stock: null, type: 'product' };
 const mockSale = { id: 'sale-1', status: 'pending' };
 const mockCharge = { success: true, gateway: 'mercadopago', qrCode: 'pix-code', paymentId: 'pay-1' };
 
@@ -85,6 +85,47 @@ describe('CheckoutService', () => {
     await expect(service.createCheckout({ productId: 'prod-1', userId: 'user-1', platform: 'telegram' })).rejects.toThrow(
       BadRequestException,
     );
+  });
+
+  it('deve bloquear assinatura do Discord no Telegram', async () => {
+    productRepo.findById.mockResolvedValue({
+      ...mockProduct,
+      type: 'subscription',
+      discordSubscriptionRoleId: 'role-1',
+      telegramGroupId: null,
+    } as any);
+
+    await expect(service.createCheckout({ productId: 'prod-1', userId: 'user-1', platform: 'telegram' })).rejects.toThrow(
+      'Assinatura não disponível para Telegram.',
+    );
+  });
+
+  it('deve bloquear assinatura do Telegram no Discord', async () => {
+    productRepo.findById.mockResolvedValue({
+      ...mockProduct,
+      type: 'subscription',
+      telegramGroupId: 'group-1',
+      discordSubscriptionRoleId: null,
+    } as any);
+
+    await expect(service.createCheckout({ productId: 'prod-1', userId: 'user-1', platform: 'discord' })).rejects.toThrow(
+      'Assinatura não disponível para Discord.',
+    );
+  });
+
+  it('deve permitir assinatura configurada para ambas as plataformas', async () => {
+    productRepo.findById.mockResolvedValue({
+      ...mockProduct,
+      type: 'subscription',
+      telegramGroupId: 'group-1',
+      discordSubscriptionRoleId: 'role-1',
+    } as any);
+
+    const telegramResult = await service.createCheckout({ productId: 'prod-1', userId: 'user-1', platform: 'telegram' });
+    const discordResult = await service.createCheckout({ productId: 'prod-1', userId: 'user-1', platform: 'discord' });
+
+    expect(telegramResult.saleId).toBe('sale-1');
+    expect(discordResult.saleId).toBe('sale-1');
   });
 
   it('deve lançar erro se usuário já usou o cupom e limitToOneUsePerUser=true', async () => {

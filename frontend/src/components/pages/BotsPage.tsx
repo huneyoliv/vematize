@@ -22,7 +22,17 @@ interface BotConfig {
   discordCartCategoryId?: string;
   discordSalesLogChannelId?: string;
   discordCouponsEnabled?: boolean;
+  discordSupportRoleId?: string;
+  discordThreadArchiveMinutes?: number;
   discordPanels?: any[];
+}
+
+interface ProductOption {
+  id: string;
+  name: string;
+  type: string;
+  telegramGroupId?: string;
+  discordSubscriptionRoleId?: string;
 }
 
 const platformInfo: Record<string, { name: string; icon: typeof TelegramIcon; color: string }> = {
@@ -55,10 +65,12 @@ export default function BotsPage() {
     discordCartCategoryId: '',
     discordSalesLogChannelId: '',
     discordCouponsEnabled: true,
+    discordSupportRoleId: '',
+    discordThreadArchiveMinutes: 1440,
   });
   const [flows, setFlows] = useState<any[]>([]);
   const [discordPanels, setDiscordPanels] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
 
   const [copied, setCopied] = useState(false);
   const [testingEndpoint, setTestingEndpoint] = useState(false);
@@ -66,6 +78,18 @@ export default function BotsPage() {
   const [regenerating, setRegenerating] = useState(false);
 
   const info = platform ? platformInfo[platform] : null;
+
+  const filterProductsByPlatform = (items: ProductOption[], targetPlatform?: string) => {
+    if (!targetPlatform) return items;
+    return items.filter((product) => {
+      if (product.type !== 'subscription') return true;
+      const allowsTelegram = !!product.telegramGroupId;
+      const allowsDiscord = !!product.discordSubscriptionRoleId;
+      if (targetPlatform === 'telegram') return allowsTelegram;
+      if (targetPlatform === 'discord') return allowsDiscord;
+      return true;
+    });
+  };
 
   useEffect(() => {
     if (!platform) return;
@@ -92,6 +116,8 @@ export default function BotsPage() {
           discordCartCategoryId: data.discordCartCategoryId || '',
           discordSalesLogChannelId: data.discordSalesLogChannelId || '',
           discordCouponsEnabled: data.discordCouponsEnabled ?? true,
+          discordSupportRoleId: data.discordSupportRoleId || '',
+          discordThreadArchiveMinutes: data.discordThreadArchiveMinutes ?? 1440,
         });
         setFlows(data.flows || []);
         setDiscordPanels(data.discordPanels || []);
@@ -516,6 +542,18 @@ export default function BotsPage() {
                       style={{ width: 'auto' }} />
                     <label htmlFor="couponsEnabled" style={{ margin: 0 }}>Habilitar cupons no bot</label>
                   </div>
+                  <div className="form-group">
+                    <label>ID do Cargo de Suporte/Entrega Manual</label>
+                    <input className="input" value={configForm.discordSupportRoleId}
+                      onChange={(e) => setConfigForm({ ...configForm, discordSupportRoleId: e.target.value })}
+                      placeholder="Membros que farão atendimento em tickets/carrinhos" />
+                  </div>
+                  <div className="form-group">
+                    <label>Tempo de exclusão da Thread/Carrinho (minutos)</label>
+                    <input className="input" type="number" value={configForm.discordThreadArchiveMinutes}
+                      onChange={(e) => setConfigForm({ ...configForm, discordThreadArchiveMinutes: Number(e.target.value) })}
+                      placeholder="Padrão: 1440 (24h)" />
+                  </div>
                 </>
               )}
 
@@ -531,7 +569,7 @@ export default function BotsPage() {
             flows={flows}
             onChange={setFlows}
             onSave={handleSaveFlows}
-            products={products}
+            products={filterProductsByPlatform(products, platform)}
             saving={saving}
           />
         )}
@@ -542,6 +580,7 @@ export default function BotsPage() {
             onChange={setDiscordPanels}
             onSave={handleSavePanels}
             saving={saving}
+            platform={platform}
           />
         )}
       </div>

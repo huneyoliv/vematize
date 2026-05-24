@@ -104,6 +104,57 @@ describe('WebhookService', () => {
     expect(mockDeliveryService.deliver).toHaveBeenCalledWith('sale-999');
   });
 
+  it('deve validar assinatura do MercadoPago com sucesso quando o ID de pagamento vem no query param "id"', async () => {
+    const secret = 'my-webhook-secret';
+    mockSettingsRepo.get.mockResolvedValue({
+      mercadopagoConfig: { webhook_secret: secret },
+    });
+
+    const dataId = '123456';
+    const xRequestId = 'req-abc';
+    const ts = '1680000000';
+    const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
+    const signature = createHmac('sha256', secret).update(manifest).digest('hex');
+    const xSignature = `ts=${ts},v1=${signature}`;
+
+    const headers = {
+      'x-signature': xSignature,
+      'x-request-id': xRequestId,
+    };
+
+    const query = { id: dataId };
+
+    mockSaleRepo.findByPaymentId.mockResolvedValue({ id: 'sale-999', productId: 'prod-1', status: 'pending' });
+    mockMpService.getPaymentStatus.mockResolvedValue({ status: 'approved' });
+
+    await service.processMercadoPago({}, headers, query);
+
+    expect(mockSettingsRepo.get).toHaveBeenCalled();
+    expect(mockSaleRepo.findByPaymentId).toHaveBeenCalledWith(dataId);
+    expect(mockDeliveryService.deliver).toHaveBeenCalledWith('sale-999');
+  });
+
+  it('deve pular a validacao de assinatura do MercadoPago se for IPN (topic presente)', async () => {
+    const secret = 'my-webhook-secret';
+    mockSettingsRepo.get.mockResolvedValue({
+      mercadopagoConfig: { webhook_secret: secret },
+    });
+
+    const headers = {
+      'x-signature': 'ts=1680000000,v1=invalid-signature',
+      'x-request-id': 'req-abc',
+    };
+
+    const query = { id: '123456', topic: 'payment' };
+
+    mockSaleRepo.findByPaymentId.mockResolvedValue({ id: 'sale-999', productId: 'prod-1', status: 'pending' });
+    mockMpService.getPaymentStatus.mockResolvedValue({ status: 'approved' });
+
+    await service.processMercadoPago({}, headers, query);
+
+    expect(mockDeliveryService.deliver).toHaveBeenCalledWith('sale-999');
+  });
+
   it('deve falhar ao validar assinatura do MercadoPago invalida', async () => {
     const secret = 'my-webhook-secret';
     mockSettingsRepo.get.mockResolvedValue({

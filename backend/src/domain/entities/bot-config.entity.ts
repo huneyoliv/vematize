@@ -40,6 +40,9 @@ export class BotConfig {
   discordSalesLogChannelId?: string;
   discordPanels?: any[];
   discordCouponsEnabled?: boolean;
+  discordSubscriptionRoleId?: string;
+  discordSupportRoleId?: string;
+  discordThreadArchiveMinutes?: number;
   createdAt: Date;
   updatedAt?: Date;
 }

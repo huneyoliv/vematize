@@ -50,6 +50,15 @@ export class BotConfigEntity {
   @Column({ default: true })
   discordCouponsEnabled: boolean;
 
+  @Column({ nullable: true })
+  discordSubscriptionRoleId: string;
+
+  @Column({ nullable: true })
+  discordSupportRoleId: string;
+
+  @Column({ nullable: true, type: 'int', default: 60 })
+  discordThreadArchiveMinutes: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

@@ -52,4 +52,15 @@ export class UpdateBotConfigDto {
   @IsOptional()
   @IsBoolean()
   discordCouponsEnabled?: boolean;
+
+  @IsOptional()
+  @IsString()
+  discordSubscriptionRoleId?: string;
+
+  @IsOptional()
+  @IsString()
+  discordSupportRoleId?: string;
+
+  @IsOptional()
+  discordThreadArchiveMinutes?: number;
 }

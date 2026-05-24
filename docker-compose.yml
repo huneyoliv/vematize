@@ -61,6 +61,7 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
       - INTERNAL_SECRET=${INTERNAL_SECRET}
       - NESTJS_PORT=3001
+      - NESTJS_HOST=backend
     deploy:
       resources:
         limits:

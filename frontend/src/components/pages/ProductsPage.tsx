@@ -12,6 +12,9 @@ interface Product {
   stock: number | null;
   description?: string;
   durationDays?: number | null;
+  telegramGroupId?: string;
+  isTelegramGroupAccess?: boolean;
+  discordSubscriptionRoleId?: string;
   activationCodes?: string[];
   activationCodesUsed?: string[];
   createdAt: string;
@@ -31,6 +34,9 @@ export default function ProductsPage() {
     keysText: '',
     description: '',
     durationDays: '',
+    telegramGroupId: '',
+    discordSubscriptionRoleId: '',
+    subscriptionPlatform: 'telegram',
   });
 
   const fetchProducts = () => {
@@ -46,21 +52,28 @@ export default function ProductsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const isSubscription = form.type === 'subscription';
+    const wantsTelegram = isSubscription && (form.subscriptionPlatform === 'telegram' || form.subscriptionPlatform === 'both');
+    const wantsDiscord = isSubscription && (form.subscriptionPlatform === 'discord' || form.subscriptionPlatform === 'both');
+
     const payload: any = {
       name: form.name,
       price: parseFloat(form.price),
       type: form.type,
-      productSubtype: form.productSubtype,
+      productSubtype: isSubscription ? 'standard' : form.productSubtype,
       description: form.description,
-      durationDays: form.type === 'subscription' ? parseInt(form.durationDays) || 30 : null,
+      durationDays: isSubscription ? parseInt(form.durationDays) || 30 : null,
+      telegramGroupId: wantsTelegram ? form.telegramGroupId : null,
+      discordSubscriptionRoleId: wantsDiscord ? form.discordSubscriptionRoleId : null,
+      isTelegramGroupAccess: wantsTelegram,
     };
 
-    if (form.productSubtype === 'activation_codes') {
+    if (!isSubscription && form.productSubtype === 'activation_codes') {
       payload.activationCodes = form.keysText
         .split('\n')
         .map((k) => k.trim())
         .filter(Boolean);
-    } else {
+    } else if (!isSubscription) {
       payload.stock = form.stock ? parseInt(form.stock) : null;
     }
 
@@ -85,6 +98,9 @@ export default function ProductsPage() {
       keysText: '',
       description: '',
       durationDays: '',
+      telegramGroupId: '',
+      discordSubscriptionRoleId: '',
+      subscriptionPlatform: 'telegram',
     });
   };
 
@@ -96,6 +112,10 @@ export default function ProductsPage() {
   };
 
   const startEdit = (p: Product) => {
+    const hasTelegram = !!p.telegramGroupId;
+    const hasDiscord = !!p.discordSubscriptionRoleId;
+    const subscriptionPlatform = hasTelegram && hasDiscord ? 'both' : hasDiscord ? 'discord' : 'telegram';
+
     setForm({
       name: p.name,
       price: String(p.price),
@@ -105,6 +125,9 @@ export default function ProductsPage() {
       keysText: p.activationCodes?.join('\n') || '',
       description: p.description || '',
       durationDays: p.durationDays ? String(p.durationDays) : '',
+      telegramGroupId: p.telegramGroupId || '',
+      discordSubscriptionRoleId: p.discordSubscriptionRoleId || '',
+      subscriptionPlatform,
     });
     setEditingId(p.id);
     setShowForm(true);
@@ -170,61 +193,111 @@ export default function ProductsPage() {
                 </select>
               </div>
               {form.type === 'subscription' && (
-                <div className="form-group">
-                  <label>Duração da Assinatura (dias)</label>
-                  <input
-                    className="input"
-                    type="number"
-                    min="1"
-                    value={form.durationDays}
-                    onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
-                    required
-                  />
-                </div>
+                <>
+                  <div className="form-group">
+                    <label>Duração da Assinatura (dias)</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min="1"
+                      value={form.durationDays}
+                      onChange={(e) => setForm({ ...form, durationDays: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Plataforma da Assinatura</label>
+                    <select
+                      className="input"
+                      value={form.subscriptionPlatform}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        setForm({
+                          ...form,
+                          subscriptionPlatform: value,
+                          telegramGroupId: value === 'discord' ? '' : form.telegramGroupId,
+                          discordSubscriptionRoleId: value === 'telegram' ? '' : form.discordSubscriptionRoleId,
+                        });
+                      }}
+                    >
+                      <option value="telegram">Somente Telegram</option>
+                      <option value="discord">Somente Discord</option>
+                      <option value="both">Telegram e Discord</option>
+                    </select>
+                  </div>
+                  {(form.subscriptionPlatform === 'telegram' || form.subscriptionPlatform === 'both') && (
+                    <div className="form-group">
+                      <label>ID do Grupo/Canal Premium (Telegram)</label>
+                      <input
+                        className="input"
+                        value={form.telegramGroupId}
+                        onChange={(e) => setForm({ ...form, telegramGroupId: e.target.value })}
+                        placeholder="ID do grupo/canal premium no Telegram"
+                        required
+                      />
+                    </div>
+                  )}
+                  {(form.subscriptionPlatform === 'discord' || form.subscriptionPlatform === 'both') && (
+                    <div className="form-group">
+                      <label>ID do Cargo de Assinante (Discord)</label>
+                      <input
+                        className="input"
+                        value={form.discordSubscriptionRoleId}
+                        onChange={(e) => setForm({ ...form, discordSubscriptionRoleId: e.target.value })}
+                        placeholder="Cargo atribuído no Discord durante a assinatura"
+                        required
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
-              <div className="form-group">
-                <label>Subtipo / Entrega</label>
-                <select
-                  className="input"
-                  value={form.productSubtype}
-                  onChange={(e) => setForm({ ...form, productSubtype: e.target.value })}
-                >
-                  <option value="standard">Entrega Manual (Estoque numérico)</option>
-                  <option value="activation_codes">Entrega Automática (Chaves/Códigos de Ativação)</option>
-                </select>
-              </div>
-
-              {form.productSubtype === 'activation_codes' ? (
-                <div className="form-group">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                    <label style={{ margin: 0 }}>Chaves de Ativação (uma por linha)</label>
-                    <span style={{ fontSize: '11px', opacity: 0.7, background: 'rgba(255,255,255,0.07)', padding: '2px 6px', borderRadius: '4px' }}>
-                      Estoque calculado: {form.keysText.split('\n').filter(Boolean).length}
-                    </span>
+              {form.type !== 'subscription' && (
+                <>
+                  <div className="form-group">
+                    <label>Subtipo / Entrega</label>
+                    <select
+                      className="input"
+                      value={form.productSubtype}
+                      onChange={(e) => setForm({ ...form, productSubtype: e.target.value })}
+                    >
+                      <option value="standard">Entrega Manual (Estoque numérico)</option>
+                      <option value="activation_codes">Entrega Automática (Chaves/Códigos de Ativação)</option>
+                    </select>
                   </div>
-                  <textarea
-                    className="input"
-                    rows={6}
-                    style={{ fontFamily: 'monospace', fontSize: '13px', resize: 'vertical' }}
-                    value={form.keysText}
-                    onChange={(e) => setForm({ ...form, keysText: e.target.value })}
-                    placeholder="exemplo-chave-1&#10;exemplo-chave-2&#10;exemplo-chave-3"
-                    required
-                  />
-                </div>
-              ) : (
-                <div className="form-group">
-                  <label>Quantidade em Estoque</label>
-                  <input
-                    className="input"
-                    type="number"
-                    min="0"
-                    placeholder="Deixe em branco para ilimitado"
-                    value={form.stock}
-                    onChange={(e) => setForm({ ...form, stock: e.target.value })}
-                  />
-                </div>
+
+                  {form.productSubtype === 'activation_codes' ? (
+                    <div className="form-group">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <label style={{ margin: 0 }}>Chaves de Ativação (uma por linha)</label>
+                        <span style={{ fontSize: '11px', opacity: 0.7, background: 'rgba(255,255,255,0.07)', padding: '2px 6px', borderRadius: '4px' }}>
+                          Estoque calculado: {form.keysText.split('\n').filter(Boolean).length}
+                        </span>
+                      </div>
+                      <textarea
+                        className="input"
+                        rows={6}
+                        style={{ fontFamily: 'monospace', fontSize: '13px', resize: 'vertical' }}
+                        value={form.keysText}
+                        onChange={(e) => setForm({ ...form, keysText: e.target.value })}
+                        placeholder="exemplo-chave-1&#10;exemplo-chave-2&#10;exemplo-chave-3"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <div className="form-group">
+                      <label>Quantidade em Estoque</label>
+                      <input
+                        className="input"
+                        type="number"
+                        min="0"
+                        placeholder="Deixe em branco para ilimitado"
+                        value={form.stock}
+                        onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                      />
+                    </div>
+                  )}
+                </>
               )}
 
               <div className="form-group">
