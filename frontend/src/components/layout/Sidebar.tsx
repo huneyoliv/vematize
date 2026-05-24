@@ -14,6 +14,9 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 
+const IS_PREVIEW = import.meta.env.VITE_PREVIEW_MODE === 'true';
+const APP_PREFIX = IS_PREVIEW ? '/app' : '';
+
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/products', label: 'Produtos', icon: Package },
@@ -32,7 +35,7 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate(`${APP_PREFIX}/login`);
   };
 
   return (
@@ -47,7 +50,7 @@ export default function Sidebar() {
         {navItems.map((item) => (
           <NavLink
             key={item.to}
-            to={item.to}
+            to={`${APP_PREFIX}${item.to}`}
             className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
           >
             <item.icon size={18} />

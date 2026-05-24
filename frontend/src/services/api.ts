@@ -1,34 +1,37 @@
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 
-const getBaseUrl = () => {
-  const domain = import.meta.env.VITE_DOMAIN || 'localhost';
-  if (domain === 'localhost') {
-    return '';
-  }
-  return `https://api.${domain}`;
-};
+const IS_PREVIEW = import.meta.env.VITE_PREVIEW_MODE === 'true';
 
-const api = axios.create({
-  baseURL: getBaseUrl(),
-});
+let api: any;
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+if (IS_PREVIEW) {
+  const { default: mockApi } = await import('../mocks/mockApi');
+  api = mockApi;
+} else {
+  const getBaseUrl = () => {
+    const domain = import.meta.env.VITE_DOMAIN || 'localhost';
+    if (domain === 'localhost') return '';
+    return `https://api.${domain}`;
+  };
 
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  },
-);
+  api = axios.create({ baseURL: getBaseUrl() });
 
-export default api;
+  api.interceptors.request.use((config: any) => {
+    const token = localStorage.getItem('token');
+    if (token) config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  });
+
+  api.interceptors.response.use(
+    (response: any) => response,
+    (error: any) => {
+      if (error.response?.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+      }
+      return Promise.reject(error);
+    },
+  );
+}
+
+export default api as AxiosInstance;
