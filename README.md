@@ -51,6 +51,15 @@ REDIS_PASSWORD=secure-redis-password
 # JWT Secret (generate with: node -e "console.log(require('crypto').randomBytes(64).toString('hex'))")
 JWT_SECRET=your-generated-secret-here
 
+# Encryption Key (32 bytes hex)
+ENCRYPTION_KEY=your-encryption-key-here
+
+# Internal Secret for Go and NestJS communication
+INTERNAL_SECRET=your-internal-secret-here
+
+# ImgBB API Key for image uploads
+IMGBB_API_KEY=your-imgbb-api-key
+
 # Auto-create tables (true on first run, false afterwards)
 DB_SYNC=true
 ```
