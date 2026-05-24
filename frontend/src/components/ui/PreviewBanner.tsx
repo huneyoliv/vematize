@@ -7,9 +7,9 @@ export default function PreviewBanner() {
       aria-live="polite"
       style={{
         position: 'fixed',
-        bottom: 24,
-        right: 24,
-        zIndex: 9999,
+        bottom: '24px',
+        right: '24px',
+        zIndex: 99999,
         background: 'rgba(15, 23, 42, 0.65)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',

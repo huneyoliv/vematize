@@ -36,8 +36,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
       <Sidebar />
       <main className="content" style={{ position: 'relative' }}>
         <PageShell>{children}</PageShell>
-        {IS_PREVIEW && <PreviewBanner />}
       </main>
+      {IS_PREVIEW && <PreviewBanner />}
     </>
   );
 }
