@@ -11,8 +11,12 @@
         var search = location.search;
         if (search.slice(1,3) === 'p=') {
           var decoded = search.slice(3).replace(/~and~/g, '&');
+          var base = location.pathname;
+          if (base.endsWith('/')) {
+            base = base.slice(0, -1);
+          }
           history.replaceState(null, null,
-            location.pathname.slice(0, -1) + decoded + location.hash
+            base + decoded + location.hash
           );
         }
       })();

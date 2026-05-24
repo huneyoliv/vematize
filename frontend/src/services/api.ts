@@ -1,11 +1,11 @@
 import axios, { AxiosInstance } from 'axios';
+import mockApi from '../mocks/mockApi';
 
 const IS_PREVIEW = import.meta.env.VITE_PREVIEW_MODE === 'true';
 
 let api: any;
 
 if (IS_PREVIEW) {
-  const { default: mockApi } = await import('../mocks/mockApi');
   api = mockApi;
 } else {
   const getBaseUrl = () => {
