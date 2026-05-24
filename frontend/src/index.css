@@ -67,9 +67,12 @@ body::before {
 
 #root {
   min-height: 100dvh;
+  width: 100%;
+  max-width: 100%;
   display: flex;
   position: relative;
   z-index: 1;
+  overflow-x: hidden;
 }
 
 a {

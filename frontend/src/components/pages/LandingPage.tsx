@@ -83,6 +83,8 @@ export default function LandingPage() {
       <style>{`
         .lp-container {
           min-height: 100vh;
+          width: 100%;
+          flex: 1;
           background-color: #030712;
           color: #f8fafc;
           font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;

@@ -34,10 +34,10 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return (
     <>
       <Sidebar />
-      <main className="content">
+      <main className="content" style={{ position: 'relative' }}>
         <PageShell>{children}</PageShell>
+        {IS_PREVIEW && <PreviewBanner />}
       </main>
-      {IS_PREVIEW && <PreviewBanner />}
     </>
   );
 }
