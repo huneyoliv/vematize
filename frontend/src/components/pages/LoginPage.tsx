@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Zap } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../hooks/useLanguage';
 import { useNavigate } from 'react-router-dom';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,7 +20,7 @@ export default function LoginPage() {
       await login(username, password);
       navigate('/dashboard');
     } catch {
-      setError('Usuário ou senha inválidos.');
+      setError(t('login.errorInvalid'));
     } finally {
       setLoading(false);
     }
@@ -28,40 +29,37 @@ export default function LoginPage() {
   return (
     <div className="login-container">
       <div className="card login-card">
-        <div className="login-brand">
-          <div className="login-brand-icon" aria-hidden>
-            <Zap size={26} strokeWidth={2.5} />
-          </div>
-          <h1>Vematize</h1>
-          <p className="login-subtitle">Acesse o painel de controle</p>
+        <div className="login-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+          <img src="/logo.png" alt="Vematize" style={{ height: '48px', width: 'auto', objectFit: 'contain', marginBottom: '0.5rem' }} />
+          <p className="login-subtitle">{t('login.subtitle')}</p>
         </div>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label htmlFor="username">Usuário</label>
+            <label htmlFor="username">{t('login.username')}</label>
             <input
               id="username"
               className="input"
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Digite seu usuário"
+              placeholder={t('login.usernamePlaceholder')}
               autoFocus
             />
           </div>
           <div className="form-group">
-            <label htmlFor="password">Senha</label>
+            <label htmlFor="password">{t('login.password')}</label>
             <input
               id="password"
               className="input"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Digite sua senha"
+              placeholder={t('login.passwordPlaceholder')}
             />
           </div>
           {error && <div className="form-error" role="alert">{error}</div>}
           <button type="submit" className="btn btn-primary login-btn" disabled={loading}>
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? t('login.loading') : t('login.button')}
           </button>
         </form>
       </div>

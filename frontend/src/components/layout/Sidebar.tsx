@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { useLanguage } from '../../hooks/useLanguage';
 import {
   LayoutDashboard,
   Package,
@@ -9,7 +10,6 @@ import {
   Tag,
   Settings,
   LogOut,
-  Zap,
   Megaphone,
   Image as ImageIcon,
 } from 'lucide-react';
@@ -18,20 +18,21 @@ const IS_PREVIEW = import.meta.env.VITE_PREVIEW_MODE === 'true';
 const APP_PREFIX = IS_PREVIEW ? '/app' : '';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/products', label: 'Produtos', icon: Package },
-  { to: '/users', label: 'Usuários', icon: Users },
-  { to: '/sales', label: 'Vendas', icon: ShoppingCart },
-  { to: '/bots', label: 'Bots', icon: Bot },
-  { to: '/coupons', label: 'Cupons', icon: Tag },
-  { to: '/campanhas', label: 'Campanhas', icon: Megaphone },
-  { to: '/gallery', label: 'Galeria', icon: ImageIcon },
-  { to: '/settings', label: 'Configurações', icon: Settings },
+  { to: '/dashboard', labelKey: 'navigation.dashboard', icon: LayoutDashboard },
+  { to: '/products', labelKey: 'navigation.products', icon: Package },
+  { to: '/users', labelKey: 'navigation.users', icon: Users },
+  { to: '/sales', labelKey: 'navigation.sales', icon: ShoppingCart },
+  { to: '/bots', labelKey: 'navigation.bots', icon: Bot },
+  { to: '/coupons', labelKey: 'navigation.coupons', icon: Tag },
+  { to: '/campanhas', labelKey: 'navigation.campaigns', icon: Megaphone },
+  { to: '/gallery', labelKey: 'navigation.gallery', icon: ImageIcon },
+  { to: '/settings', labelKey: 'navigation.settings', icon: Settings },
 ];
 
 export default function Sidebar() {
   const { logout, user } = useAuth();
   const navigate = useNavigate();
+  const { t } = useLanguage();
 
   const handleLogout = () => {
     logout();
@@ -40,11 +41,8 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo">
-        <div className="sidebar-logo-icon" aria-hidden>
-          <Zap size={20} strokeWidth={2.5} />
-        </div>
-        <span>Vematize</span>
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <img src="/logo.png" alt="Vematize" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
       </div>
       <nav className="sidebar-nav">
         {navItems.map((item) => (
@@ -54,7 +52,7 @@ export default function Sidebar() {
             className={({ isActive }) => `sidebar-link${isActive ? ' active' : ''}`}
           >
             <item.icon size={18} />
-            {item.label}
+            {t(item.labelKey)}
           </NavLink>
         ))}
       </nav>
@@ -62,7 +60,7 @@ export default function Sidebar() {
         <div className="sidebar-user">{user?.username}</div>
         <button type="button" className="sidebar-link sidebar-logout" onClick={handleLogout}>
           <LogOut size={18} />
-          Sair
+          {t('navigation.logout')}
         </button>
       </div>
     </aside>

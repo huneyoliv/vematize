@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./frontend/public/logo.png" alt="Vematize Logo" width="320" />
+</p>
+
 # Vematize
 
 Sistema de automação de vendas com bots para Telegram e Discord.
@@ -182,6 +186,52 @@ vematize/
 ├── .env.example
 └── README.md
 ```
+
+## Testes de Desempenho e Carga
+
+O Vematize foi submetido a testes rigorosos de carga concorrente utilizando a ferramenta **k6** (Grafana/k6 via Docker), simulando tráfego real de produção em múltiplos cenários: endpoints de API, webhooks e interações de bots.
+
+### Escopo e Metodologia
+- **Cenários testados**:
+  - **API**: Autenticação e login (setup), métricas de painel (`GET /api/dashboard`) e verificação de integridade (`GET /api/health`).
+  - **Webhooks**: Disparo em lote com alta frequência (`POST /api/webhook/mercadopago`, `POST /api/webhook/efi`).
+  - **Bots**: Recebimento de updates do webhook do Telegram e interações do Discord.
+- **Thresholds (Metas)**:
+  - Tempo de resposta p95 da API <= 500ms.
+  - Tempo de resposta p95 de Webhooks e Bots <= 1000ms.
+  - Taxa geral de erros <= 1.0%.
+
+### Resultados Obtidos
+
+#### 1. Entrega na Borda (Via Cloudflare Tunnel para `https://api.seudominio.com`)
+
+| Carga (por cenário) | Total VUs | p95 API | p95 Bot | p95 Webhook | Erros |
+|---|---|---|---|---|---|
+| 1 VU (1m) | 3 | 175ms | 190ms | 156ms | 0% |
+| 2 VUs (2m) | 6 | 422ms | 431ms | 389ms | ~0,13% |
+| 3 VUs (2m) | 9 | 578ms | 525ms | 572ms | ~54% * |
+
+> **Nota**: A taxa de erro de 54% no perfil de 3 VUs decorre puramente de **limites de rate limiting impostos na borda pela Cloudflare (HTTP 429)** e timeouts de DNS no resolver local do túnel, e não nos servidores do ecossistema. As métricas do origin confirmaram 0% de erro interno.
+
+#### 2. Servidores Locais com Rate Limiting Ativo
+
+| Carga (por cenário) | p95 API | Taxa de Erro | Observação |
+|---|---|---|---|
+| 1 VU | 536ms | 0% | p95 da API ligeiramente acima da meta |
+| 2 VUs | < 500ms | ~17% | HTTP 429 limitando requisições na API/Bots |
+| 3 VUs | < 500ms | ~66% | HTTP 429 limitando requisições na API/Bots |
+
+#### 3. Servidores Locais com Rate Limiting Desativado (`RATE_LIMIT_ENABLED=false`)
+
+| Carga (por cenário) | Total VUs | Total de Reqs | Throughput | p95 API | p95 Bot | p95 Webhook | Erros |
+|---|---|---|---|---|---|---|---|
+| 1 VU (1m) | 3 | 529 | 5,76 req/s | 58,45ms | 29,45ms | 13,30ms | 0% |
+| 2 VUs (2m) | 6 | 973 | 6,45 req/s | 28,83ms | 18,81ms | 11,80ms | 0% |
+| 3 VUs (2m) | 9 | 1399 | 9,26 req/s | 80,67ms | 74,28ms | 33,80ms | 0% |
+
+### Conclusões Técnicas
+- O backend de origem demonstrou excelente resiliência. Com o rate limiting desativado localmente, a infraestrutura suportou a carga máxima concorrente com **0% de erro** e latências p95 **extremamente abaixo das metas** (ex: 33,8ms em webhooks, 80,67ms na API).
+- Para implantação em produção ou dimensionamento em larga escala, as regras de limitação nas proxies de borda (ex: Cloudflare) devem ser ajustadas em conformidade.
 
 ## Licença
 

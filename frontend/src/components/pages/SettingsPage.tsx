@@ -4,6 +4,7 @@ import { Save, Settings2, Image as ImageIcon } from 'lucide-react';
 import GatewayConfigModal from '../settings/GatewayConfigModal';
 import GallerySelectorModal from '../settings/GallerySelectorModal';
 import PageLoading from '../layout/PageLoading';
+import { useLanguage } from '../../hooks/useLanguage';
 import mpLogo from './MP_RGB_HANDSHAKE_color_vertical.png';
 import efiLogo from './Efi-bank-logo.png';
 
@@ -23,18 +24,19 @@ interface GatewayConfig {
   production_certificate_base64?: string;
 }
 
-function getGatewayStatus(config: GatewayConfig | null | undefined, type: 'mp' | 'efi'): { label: string; variant: string } {
-  if (!config) return { label: 'Não configurado', variant: 'badge-muted' };
+function getGatewayStatus(config: GatewayConfig | null | undefined, type: 'mp' | 'efi', t: any): { label: string; variant: string } {
+  if (!config) return { label: t('settings.notConfigured'), variant: 'badge-muted' };
   if (type === 'mp') {
-    if (config.production_access_token) return { label: 'Produção', variant: 'badge-success' };
+    if (config.production_access_token) return { label: t('settings.production'), variant: 'badge-success' };
   }
   if (type === 'efi') {
-    if (config.production_client_id) return { label: 'Produção', variant: 'badge-success' };
+    if (config.production_client_id) return { label: t('settings.production'), variant: 'badge-success' };
   }
-  return { label: 'Não configurado', variant: 'badge-muted' };
+  return { label: t('settings.notConfigured'), variant: 'badge-muted' };
 }
 
 export default function SettingsPage() {
+  const { language, setLanguage, t } = useLanguage();
   const [form, setForm] = useState({
     logoUrl: '',
     activeGateway: '' as string,
@@ -71,17 +73,17 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       await api.put('/api/settings', form);
-      showMsg('Configurações salvas!');
+      showMsg(t('settings.success'));
     } catch {
-      showMsg('Erro ao salvar.');
+      showMsg(t('settings.error'));
     }
     setSaving(false);
   };
 
   const handleSelectGateway = async (gw: 'mercadopago' | 'efi') => {
-    const status = getGatewayStatus(gw === 'mercadopago' ? mpConfig : efiConfig, gw === 'mercadopago' ? 'mp' : 'efi');
-    if (status.label === 'Não configurado') {
-      showMsg(`Configure as credenciais do ${gw === 'mercadopago' ? 'Mercado Pago' : 'Efí Bank'} primeiro!`);
+    const status = getGatewayStatus(gw === 'mercadopago' ? mpConfig : efiConfig, gw === 'mercadopago' ? 'mp' : 'efi', t);
+    if (status.label === t('settings.notConfigured')) {
+      showMsg(gw === 'mercadopago' ? t('settings.mpAlert') : t('settings.efiAlert'));
       return;
     }
     const newActive = form.activeGateway === gw ? '' : gw;
@@ -102,27 +104,27 @@ export default function SettingsPage() {
         setEfiConfig(config);
       }
       await api.put('/api/settings', payload);
-      showMsg(`${gateway === 'mercadopago' ? 'Mercado Pago' : 'Efí'} salvo com sucesso!`);
+      showMsg(gateway === 'mercadopago' ? t('settings.mpSuccess') : t('settings.efiSuccess'));
     } catch {
-      showMsg('Erro ao salvar gateway.');
+      showMsg(t('settings.saveErrorGateway'));
     }
   };
 
   if (loading) return <PageLoading />;
 
-  const mpStatus = getGatewayStatus(mpConfig, 'mp');
-  const efiStatus = getGatewayStatus(efiConfig, 'efi');
+  const mpStatus = getGatewayStatus(mpConfig, 'mp', t);
+  const efiStatus = getGatewayStatus(efiConfig, 'efi', t);
 
   return (
     <div>
       <div className="page-header">
-        <h1>Configurações</h1>
-        <p>Configurações gerais e integrações de pagamento</p>
+        <h1>{t('settings.title')}</h1>
+        <p>{t('settings.subtitle')}</p>
       </div>
 
       {saveMsg && (
         <div
-          className={`alert-banner ${saveMsg.includes('Erro') ? 'alert-banner--error' : 'alert-banner--success'}`}
+          className={`alert-banner ${saveMsg.includes('Erro') || saveMsg.includes('Error') ? 'alert-banner--error' : 'alert-banner--success'}`}
           role="status"
         >
           {saveMsg}
@@ -130,11 +132,11 @@ export default function SettingsPage() {
       )}
 
       <div className="card settings-section">
-        <h3 className="settings-section-title">Geral</h3>
-        <p className="settings-section-desc">Configurações gerais do sistema.</p>
+        <h3 className="settings-section-title">{t('settings.general')}</h3>
+        <p className="settings-section-desc">{t('settings.generalDesc')}</p>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>URL do Logo</label>
+            <label>{t('settings.logoUrl')}</label>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <input className="input" style={{ flex: 1 }} value={form.logoUrl} onChange={(e) => setForm({ ...form, logoUrl: e.target.value })} placeholder="https://..." />
               <button type="button" className="btn btn-outline" onClick={() => setShowGallery(true)} title="Escolher da Galeria">
@@ -142,16 +144,28 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
-          <button type="submit" className="btn btn-primary" disabled={saving}>
-            <Save size={16} /> {saving ? 'Salvando...' : 'Salvar'}
+          <div className="form-group" style={{ marginTop: '1rem' }}>
+            <label>{t('settings.language')}</label>
+            <select 
+              className="input" 
+              value={language} 
+              onChange={(e) => setLanguage(e.target.value as 'en' | 'pt')}
+              style={{ width: '100%', background: 'var(--card-bg)', color: 'var(--text-primary)', cursor: 'pointer' }}
+            >
+              <option value="en">English (US)</option>
+              <option value="pt">Português (BR)</option>
+            </select>
+          </div>
+          <button type="submit" className="btn btn-primary" style={{ marginTop: '0.5rem' }} disabled={saving}>
+            <Save size={16} /> {saving ? t('settings.saving') : t('settings.save')}
           </button>
         </form>
       </div>
 
       <div className="settings-section">
-        <h3 className="settings-section-title">Gateway de pagamento</h3>
+        <h3 className="settings-section-title">{t('settings.gateway')}</h3>
         <p className="settings-section-desc">
-          Selecione e configure o gateway ativo para processar pagamentos.
+          {t('settings.gatewayDesc')}
         </p>
 
         <div className="gateway-grid">
@@ -173,7 +187,7 @@ export default function SettingsPage() {
               </div>
               <div className="gateway-info">
                 <h4>Mercado Pago</h4>
-                <span>PIX e cartão de crédito</span>
+                <span>{t('settings.mpDesc')}</span>
               </div>
             </div>
             <div className="gateway-card-footer">
@@ -183,13 +197,13 @@ export default function SettingsPage() {
                 className="btn btn-ghost btn-sm"
                 onClick={(e) => { e.stopPropagation(); setModalGateway('mercadopago'); }}
               >
-                <Settings2 size={14} /> Configurar
+                <Settings2 size={14} /> {t('settings.configure')}
               </button>
             </div>
             {form.activeGateway === 'mercadopago' && (
               <div className="gateway-active gateway-active--mp">
                 <div className="gateway-active-dot gateway-active-dot--mp" aria-hidden />
-                Gateway ativo
+                {t('settings.active')}
               </div>
             )}
           </div>
@@ -212,7 +226,7 @@ export default function SettingsPage() {
               </div>
               <div className="gateway-info">
                 <h4>Efí Bank</h4>
-                <span>PIX e boleto</span>
+                <span>{t('settings.efiDesc')}</span>
               </div>
             </div>
             <div className="gateway-card-footer">
@@ -222,13 +236,13 @@ export default function SettingsPage() {
                 className="btn btn-ghost btn-sm"
                 onClick={(e) => { e.stopPropagation(); setModalGateway('efi'); }}
               >
-                <Settings2 size={14} /> Configurar
+                <Settings2 size={14} /> {t('settings.configure')}
               </button>
             </div>
             {form.activeGateway === 'efi' && (
               <div className="gateway-active gateway-active--efi">
                 <div className="gateway-active-dot gateway-active-dot--efi" aria-hidden />
-                Gateway ativo
+                {t('settings.active')}
               </div>
             )}
           </div>

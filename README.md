@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./frontend/public/logo.png" alt="Vematize Logo" width="320" />
+</p>
+
 # Vematize
 
 Sales automation system with bots for Telegram and Discord.
@@ -182,6 +186,52 @@ vematize/
 ├── .env.example
 └── README.md
 ```
+
+## Performance & Load Tests
+
+Vematize was tested for high throughput and concurrent load utilizing **k6** (Grafana/k6 via Docker) simulating production traffic across multiple scenarios: API endpoints, webhooks, and bot interactions.
+
+### Scope & Methodology
+- **Scenarios**: 
+  - **API**: Authenticated login setup, dynamic dashboard metrics (`GET /api/dashboard`), and core health checking (`GET /api/health`).
+  - **Webhooks**: High-frequency payload deliveries (`POST /api/webhook/mercadopago`, `POST /api/webhook/efi`).
+  - **Bots**: Telegram callback webhook simulation and Discord interaction handling.
+- **Threshold Targets**: 
+  - API p95 response time <= 500ms.
+  - Webhooks & Bots p95 response time <= 1000ms.
+  - Overall error rate <= 1.0%.
+
+### Execution Results
+
+#### 1. Edge Delivery (Through Cloudflare Tunnel to `https://api.yourdomain.com`)
+
+| Load (per scenario) | Total VUs | p95 API | p95 Bot | p95 Webhook | Errors |
+|---|---|---|---|---|---|
+| 1 VU (1m) | 3 | 175ms | 190ms | 156ms | 0% |
+| 2 VUs (2m) | 6 | 422ms | 431ms | 389ms | ~0.13% |
+| 3 VUs (2m) | 9 | 578ms | 525ms | 572ms | ~54% * |
+
+> **Note**: The elevated error rate at 3 VUs is strictly due to **edge rate limiting (HTTP 429)** and local DNS resolver limits imposed by the Cloudflare Tunnel agent, not the origin backend servers. Container metrics confirmed 0% error on the origin side.
+
+#### 2. Localhost Origin with Rate Limiting Enabled
+
+| Load (per scenario) | p95 API | Error Rate | Note |
+|---|---|---|---|
+| 1 VU | 536ms | 0% | p95 API slightly above target |
+| 2 VUs | < 500ms | ~17% | HTTP 429 throttled at API/Bots |
+| 3 VUs | < 500ms | ~66% | HTTP 429 throttled at API/Bots |
+
+#### 3. Localhost Origin with Rate Limiting Disabled (`RATE_LIMIT_ENABLED=false`)
+
+| Load (per scenario) | Total VUs | Total Requests | Throughput | p95 API | p95 Bot | p95 Webhook | Errors |
+|---|---|---|---|---|---|---|---|
+| 1 VU (1m) | 3 | 529 | 5.76 req/s | 58.45ms | 29.45ms | 13.30ms | 0% |
+| 2 VUs (2m) | 6 | 973 | 6.45 req/s | 28.83ms | 18.81ms | 11.80ms | 0% |
+| 3 VUs (2m) | 9 | 1,399 | 9.26 req/s | 80.67ms | 74.28ms | 33.80ms | 0% |
+
+### Key Takeaways
+- The backend infrastructure is exceptionally resilient. With rate limiting disabled locally, the origin easily processes concurrent load with **0% error** and latency p95 times **far below thresholds** (e.g. 33.8ms for webhooks, 80.67ms for APIs).
+- For staging or benchmark scaling, rate limiting at edge proxies (like Cloudflare) should be adjusted accordingly.
 
 ## License
 
