@@ -20,7 +20,10 @@ interface DiscordEmbedPreviewProps {
   panelName: string;
 }
 
+import { useLanguage } from '../../hooks/useLanguage';
+
 export default function DiscordEmbedPreview({ embedConfig, productIds, products, panelName }: DiscordEmbedPreviewProps) {
+  const { t } = useLanguage();
   const selectedProducts = products.filter(p => productIds.includes(p.id));
   const accentColor = embedConfig.color || '#5865F2';
 
@@ -74,7 +77,7 @@ export default function DiscordEmbedPreview({ embedConfig, productIds, products,
             flexShrink: 0,
           }}>🤖</div>
           <div>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#5865F2' }}>Seu Bot</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: '#5865F2' }}>{t('botsPage.panels.yourBot')}</span>
             <span style={{
               fontSize: 10,
               background: '#5865F2',
@@ -85,7 +88,7 @@ export default function DiscordEmbedPreview({ embedConfig, productIds, products,
               fontWeight: 700,
               verticalAlign: 'middle',
             }}>BOT</span>
-            <div style={{ fontSize: 11, color: '#949898', marginTop: 1 }}>agora</div>
+            <div style={{ fontSize: 11, color: '#949898', marginTop: 1 }}>{t('botsPage.panels.now')}</div>
           </div>
         </div>
 
@@ -109,16 +112,16 @@ export default function DiscordEmbedPreview({ embedConfig, productIds, products,
 
           <div style={{ padding: '12px 14px' }}>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 6, lineHeight: 1.3 }}>
-              {embedConfig.title || <span style={{ color: '#6d6f78', fontStyle: 'italic' }}>Título do Embed</span>}
+              {embedConfig.title || <span style={{ color: '#6d6f78', fontStyle: 'italic' }}>{t('botsPage.panels.embedTitlePlaceholder')}</span>}
             </div>
             <div style={{ fontSize: 13, color: '#b5bac1', lineHeight: 1.55, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
-              {embedConfig.description || <span style={{ color: '#4d4f58', fontStyle: 'italic' }}>Descrição aparecerá aqui...</span>}
+              {embedConfig.description || <span style={{ color: '#4d4f58', fontStyle: 'italic' }}>{t('botsPage.panels.embedDescPlaceholder')}</span>}
             </div>
 
             {selectedProducts.length > 0 && (
               <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ fontSize: 11, fontWeight: 700, color: '#b5bac1', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                  Produtos Disponíveis
+                  {t('botsPage.panels.defaultTitle')}
                 </div>
                 {selectedProducts.map(p => (
                   <div key={p.id} style={{
@@ -182,7 +185,7 @@ export default function DiscordEmbedPreview({ embedConfig, productIds, products,
             color: '#4d4f58',
             fontStyle: 'italic',
           }}>
-            Selecione produtos para ver os botões
+            {t('botsPage.panels.noProductsSelected')}
           </div>
         )}
       </div>

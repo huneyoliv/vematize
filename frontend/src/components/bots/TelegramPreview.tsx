@@ -31,7 +31,10 @@ function renderTelegramMarkdown(text: string): string {
     .replace(/\n/g, '<br/>');
 }
 
+import { useLanguage } from '../../hooks/useLanguage';
+
 export default function TelegramPreview({ step }: TelegramPreviewProps) {
+  const { t } = useLanguage();
   const html = renderTelegramMarkdown(step.message || '');
 
   return (
@@ -59,7 +62,7 @@ export default function TelegramPreview({ step }: TelegramPreviewProps) {
           marginTop: 2,
         }}>🤖</div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#64b5f6', marginBottom: 4 }}>Seu Bot</div>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#64b5f6', marginBottom: 4 }}>{t('botsPage.flow.yourBot')}</div>
           <div style={{
             background: '#1e3a5f',
             borderRadius: '4px 16px 16px 16px',
@@ -75,11 +78,11 @@ export default function TelegramPreview({ step }: TelegramPreviewProps) {
                 wordBreak: 'break-word',
               }}
               dangerouslySetInnerHTML={{
-                __html: html || '<span style="color:rgba(232,234,246,0.3);font-style:italic">Mensagem vazia...</span>',
+                __html: html || `<span style="color:rgba(232,234,246,0.3);font-style:italic">${t('botsPage.flow.emptyMsg')}</span>`,
               }}
             />
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.3)', textAlign: 'right', marginTop: 5 }}>
-              agora ✓✓
+              {t('botsPage.flow.now')}
             </div>
           </div>
 
@@ -96,7 +99,7 @@ export default function TelegramPreview({ step }: TelegramPreviewProps) {
                   color: '#90caf9',
                   fontWeight: 600,
                 }}>
-                  {btn.text || 'Botão'}
+                  {btn.text || t('botsPage.flow.button')}
                 </div>
               ))}
             </div>

@@ -86,7 +86,10 @@ export default function SettingsPage() {
       showMsg(gw === 'mercadopago' ? t('settings.mpAlert') : t('settings.efiAlert'));
       return;
     }
-    const newActive = form.activeGateway === gw ? '' : gw;
+    if (form.activeGateway === gw) {
+      return;
+    }
+    const newActive = gw;
     setForm(prev => ({ ...prev, activeGateway: newActive }));
     try {
       await api.put('/api/settings', { activeGateway: newActive });
@@ -187,7 +190,6 @@ export default function SettingsPage() {
               </div>
               <div className="gateway-info">
                 <h4>Mercado Pago</h4>
-                <span>{t('settings.mpDesc')}</span>
               </div>
             </div>
             <div className="gateway-card-footer">
@@ -226,7 +228,6 @@ export default function SettingsPage() {
               </div>
               <div className="gateway-info">
                 <h4>Efí Bank</h4>
-                <span>{t('settings.efiDesc')}</span>
               </div>
             </div>
             <div className="gateway-card-footer">

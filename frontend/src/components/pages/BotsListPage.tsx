@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import { TelegramIcon, DiscordIcon } from '../icons/platform-icons';
 import PageLoading from '../layout/PageLoading';
+import { useLanguage } from '../../hooks/useLanguage';
 
 interface BotStatus {
   platform: string;
@@ -32,6 +33,7 @@ const platforms = [
 
 export default function BotsListPage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [configs, setConfigs] = useState<BotStatus[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,8 +56,8 @@ export default function BotsListPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Meus Bots</h1>
-        <p>Gerencie as conexões e configurações dos seus bots</p>
+        <h1>{t('botsList.title', 'Meus Bots')}</h1>
+        <p>{t('botsList.subtitle', 'Gerencie as conexões e configurações dos seus bots')}</p>
       </div>
 
       <div className="grid grid-2 bots-grid">
@@ -87,19 +89,19 @@ export default function BotsListPage() {
                   <div>
                     <h3 className="bot-card-name">{p.name}</h3>
                     <span className="bot-card-type">
-                      {p.key === 'telegram' ? 'Bot pessoal' : 'Bot de servidor'}
+                      {p.key === 'telegram' ? t('botsList.personalBot', 'Bot pessoal') : t('botsList.serverBot', 'Bot de servidor')}
                     </span>
                   </div>
                 </div>
                 <span className={`badge ${status === 'connected' ? 'badge-success' : 'badge-danger'}`}>
-                  {status === 'connected' ? 'Conectado' : 'Desconectado'}
+                  {status === 'connected' ? t('botsList.connected', 'Conectado') : t('botsList.disconnected', 'Desconectado')}
                 </span>
               </div>
 
-              <p className="bot-card-desc">{p.description}</p>
+              <p className="bot-card-desc">{t(`botsList.${p.key}Desc`, p.description)}</p>
 
               <button type="button" className="btn btn-primary bot-card-action">
-                {status === 'connected' ? 'Ver configuração' : 'Configurar conexão'}
+                {status === 'connected' ? t('botsList.viewConfig', 'Ver configuração') : t('botsList.setConfig', 'Configurar conexão')}
               </button>
             </div>
           );

@@ -5,6 +5,7 @@ import { Save, ChevronLeft, Copy, CheckCircle, RefreshCw, ExternalLink, AlertCir
 import { TelegramIcon, DiscordIcon } from '../icons/platform-icons';
 import FlowBuilder from '../bots/FlowBuilder';
 import DiscordPanelsManager from '../bots/DiscordPanelsManager';
+import { useLanguage } from '../../hooks/useLanguage';
 
 interface BotConfig {
   id?: string;
@@ -49,6 +50,7 @@ function getInteractionsUrl(token?: string) {
 export default function BotsPage() {
   const { platform } = useParams<{ platform: string }>();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [config, setConfig] = useState<BotConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -137,9 +139,9 @@ export default function BotsPage() {
     try {
       const res = await api.put(`/api/bots/${platform}`, connForm);
       setConfig(res.data);
-      showSaveMsg('Conexão salva com sucesso!');
+      showSaveMsg(t('botPage.savedConnection', 'Conexão salva com sucesso!'));
     } catch {
-      showSaveMsg('Erro ao salvar conexão.');
+      showSaveMsg(t('botPage.errorConnection', 'Erro ao salvar conexão.'));
     }
     setSaving(false);
   };
@@ -149,9 +151,9 @@ export default function BotsPage() {
     setSaving(true);
     try {
       await api.put(`/api/bots/${platform}`, configForm);
-      showSaveMsg('Configurações salvas com sucesso!');
+      showSaveMsg(t('botPage.savedSettings', 'Configurações salvas com sucesso!'));
     } catch {
-      showSaveMsg('Erro ao salvar configurações.');
+      showSaveMsg(t('botPage.errorSettings', 'Erro ao salvar configurações.'));
     }
     setSaving(false);
   };
@@ -160,9 +162,9 @@ export default function BotsPage() {
     setSaving(true);
     try {
       await api.put(`/api/bots/${platform}`, { flows: updatedFlows });
-      showSaveMsg('Fluxos salvos com sucesso!');
+      showSaveMsg(t('botPage.savedFlows', 'Fluxos salvos com sucesso!'));
     } catch {
-      showSaveMsg('Erro ao salvar fluxos.');
+      showSaveMsg(t('botPage.errorFlows', 'Erro ao salvar fluxos.'));
     }
     setSaving(false);
   };
@@ -171,9 +173,9 @@ export default function BotsPage() {
     setSaving(true);
     try {
       await api.put(`/api/bots/${platform}`, { discordPanels: updatedPanels });
-      showSaveMsg('Painéis salvos com sucesso!');
+      showSaveMsg(t('botPage.savedPanels', 'Painéis salvos com sucesso!'));
     } catch {
-      showSaveMsg('Erro ao salvar painéis.');
+      showSaveMsg(t('botPage.errorPanels', 'Erro ao salvar painéis.'));
     }
     setSaving(false);
   };
@@ -193,34 +195,34 @@ export default function BotsPage() {
       const res = await fetch(url);
       const data = await res.json();
       setTestResult(data.status === 'ok'
-        ? { success: true, message: '✅ Endpoint funcionando!' }
-        : { success: false, message: '❌ Endpoint respondeu com erro.' }
+        ? { success: true, message: t('botPage.inter.testOk', '✅ Endpoint funcionando!') }
+        : { success: false, message: t('botPage.inter.testError1', '❌ Endpoint respondeu com erro.') }
       );
     } catch {
-      setTestResult({ success: false, message: '❌ Não foi possível conectar ao endpoint.' });
+      setTestResult({ success: false, message: t('botPage.inter.testError2', '❌ Não foi possível conectar ao endpoint.') });
     }
     setTestingEndpoint(false);
   };
 
   const regenerateInteractionsUrl = async () => {
-    if (!confirm('⚠️ Isso vai invalidar a URL atual. O Discord precisará ser reconfigurado. Continuar?')) return;
+    if (!confirm(t('botPage.inter.regenConfirm', '⚠️ Isso vai invalidar a URL atual. O Discord precisará ser reconfigurado. Continuar?'))) return;
     setRegenerating(true);
     try {
       const res = await api.put(`/api/bots/${platform}`, { regenerateInteractionsToken: true });
       if (res.data) setConfig(res.data);
-      showSaveMsg('URL regenerada com sucesso!');
+      showSaveMsg(t('botPage.inter.regenSuccess', 'URL regenerada com sucesso!'));
     } catch {
-      showSaveMsg('Erro ao regenerar URL.');
+      showSaveMsg(t('botPage.inter.regenError', 'Erro ao regenerar URL.'));
     }
     setRegenerating(false);
   };
 
   if (loading) {
-    return <p style={{ color: 'var(--text-secondary)' }}>Carregando configuração do bot...</p>;
+    return <p style={{ color: 'var(--text-secondary)' }}>{t('botPage.loadingConfig', 'Carregando configuração do bot...')}</p>;
   }
 
   if (!info || !platform) {
-    return <p style={{ color: 'var(--text-secondary)' }}>Plataforma não encontrada.</p>;
+    return <p style={{ color: 'var(--text-secondary)' }}>{t('botPage.platformNotFound', 'Plataforma não encontrada.')}</p>;
   }
 
   const Icon = info.icon;
@@ -229,15 +231,15 @@ export default function BotsPage() {
 
   const tabs = platform === 'discord'
     ? [
-        { key: 'connection', label: 'Conexão' },
-        { key: 'settings', label: 'Configurações' },
-        { key: 'panels', label: 'Painéis de Venda' },
-        { key: 'flow', label: 'Fluxo' },
+        { key: 'connection', label: t('botPage.tabs.connection', 'Conexão') },
+        { key: 'settings', label: t('botPage.tabs.settings', 'Configurações') },
+        { key: 'panels', label: t('botPage.tabs.panels', 'Painéis de Venda') },
+        { key: 'flow', label: t('botPage.tabs.flow', 'Fluxo') },
       ]
     : [
-        { key: 'connection', label: 'Conexão' },
-        { key: 'settings', label: 'Configurações' },
-        { key: 'flow', label: 'Fluxo do Bot' },
+        { key: 'connection', label: t('botPage.tabs.connection', 'Conexão') },
+        { key: 'settings', label: t('botPage.tabs.settings', 'Configurações') },
+        { key: 'flow', label: t('botPage.tabs.botFlow', 'Fluxo do Bot') },
       ];
 
   return (
@@ -254,7 +256,7 @@ export default function BotsPage() {
           }}>
             <Icon width={18} height={18} style={{ color: info.color }} />
           </div>
-          <h1 style={{ fontSize: 22, fontWeight: 800 }}>Bot {info.name}</h1>
+          <h1 style={{ fontSize: 22, fontWeight: 800 }}>{t('botPage.botTitle', 'Bot')} {info.name}</h1>
         </div>
       </div>
 
@@ -285,9 +287,9 @@ export default function BotsPage() {
         {activeTab === 'connection' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div className="card" style={{ maxWidth: 700 }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Credenciais de Conexão</h3>
+              <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{t('botPage.conn.title', 'Credenciais de Conexão')}</h3>
               <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
-                Configure as credenciais necessárias para conectar o bot.
+                {t('botPage.conn.desc', 'Configure as credenciais necessárias para conectar o bot.')}
               </p>
 
               {platform === 'discord' && (
@@ -298,16 +300,16 @@ export default function BotsPage() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                     <AlertCircle size={18} style={{ color: '#5865F2', marginTop: 2, flexShrink: 0 }} />
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>Como configurar:</strong><br />
-                      1. Acesse o{' '}
+                      <strong style={{ color: 'var(--text-primary)' }}>{t('botPage.conn.discordHowToTitle', 'Como configurar:')}</strong><br />
+                      1. {t('botPage.conn.discordHowTo1', 'Acesse o')}{' '}
                       <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer"
                         style={{ color: '#5865F2', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                         Discord Developer Portal <ExternalLink size={12} />
                       </a><br />
-                      2. Em <strong>"General Information"</strong> → copie a <strong style={{ color: '#f59e0b' }}>PUBLIC KEY</strong><br />
-                      3. Vá em <strong>"Bot"</strong> → copie o Token<br />
-                      4. Habilite as intents: <strong>Server Members</strong> e <strong>Message Content</strong><br />
-                      5. Cole as credenciais abaixo
+                      2. {t('botPage.conn.discordHowTo2', 'Em "General Information" → copie a PUBLIC KEY')}<br />
+                      3. {t('botPage.conn.discordHowTo3', 'Vá em "Bot" → copie o Token')}<br />
+                      4. {t('botPage.conn.discordHowTo4', 'Habilite as intents: Server Members e Message Content')}<br />
+                      5. {t('botPage.conn.discordHowTo5', 'Cole as credenciais abaixo')}
                     </div>
                   </div>
                 </div>
@@ -321,11 +323,11 @@ export default function BotsPage() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                     <AlertCircle size={18} style={{ color: '#0088cc', marginTop: 2, flexShrink: 0 }} />
                     <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      <strong style={{ color: 'var(--text-primary)' }}>Como configurar:</strong><br />
-                      1. Abra o <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer"
-                        style={{ color: '#0088cc', textDecoration: 'underline' }}>@BotFather</a> no Telegram<br />
-                      2. Envie <code>/newbot</code> e siga as instruções<br />
-                      3. Copie o token gerado e cole abaixo
+                      <strong style={{ color: 'var(--text-primary)' }}>{t('botPage.conn.telegramHowToTitle', 'Como configurar:')}</strong><br />
+                      1. {t('botPage.conn.telegramHowTo1', 'Abra o @BotFather no Telegram')} <a href="https://t.me/BotFather" target="_blank" rel="noopener noreferrer"
+                        style={{ color: '#0088cc', textDecoration: 'underline' }}>@BotFather</a><br />
+                      2. {t('botPage.conn.telegramHowTo2', 'Envie /newbot e siga as instruções')}<br />
+                      3. {t('botPage.conn.telegramHowTo3', 'Copie o token gerado e cole abaixo')}
                     </div>
                   </div>
                 </div>
@@ -333,31 +335,31 @@ export default function BotsPage() {
 
               <form onSubmit={handleSaveConnection}>
                 <div className="form-group">
-                  <label>Bot Token</label>
+                  <label>{t('botPage.conn.botToken', 'Bot Token')}</label>
                   <input className="input" type="password" value={connForm.botToken}
                     onChange={(e) => setConnForm({ ...connForm, botToken: e.target.value })}
-                    placeholder={platform === 'telegram' ? 'Seu token do BotFather...' : 'Seu token do bot...'} />
+                    placeholder={platform === 'telegram' ? t('botPage.conn.botTokenTgPlaceholder', 'Seu token do BotFather...') : t('botPage.conn.botTokenDcPlaceholder', 'Seu token do bot...')} />
                 </div>
 
                 {platform === 'discord' && (
                   <>
                     <div className="form-group">
-                      <label>Client ID (Application ID)</label>
+                      <label>{t('botPage.conn.clientId', 'Client ID (Application ID)')}</label>
                       <input className="input" value={connForm.clientId}
                         onChange={(e) => setConnForm({ ...connForm, clientId: e.target.value })}
-                        placeholder="ID da aplicação no Discord" />
+                        placeholder={t('botPage.conn.clientIdPlaceholder', 'ID da aplicação no Discord')} />
                     </div>
                     <div className="form-group">
-                      <label>Public Key</label>
+                      <label>{t('botPage.conn.publicKey', 'Public Key')}</label>
                       <input className="input" value={connForm.publicKey}
                         onChange={(e) => setConnForm({ ...connForm, publicKey: e.target.value })}
-                        placeholder="Public key da aplicação" />
+                        placeholder={t('botPage.conn.publicKeyPlaceholder', 'Public key da aplicação')} />
                     </div>
                   </>
                 )}
 
                 <button type="submit" className="btn btn-primary" disabled={saving}>
-                  <Save size={16} /> {saving ? 'Salvando...' : 'Salvar Conexão'}
+                  <Save size={16} /> {saving ? t('botPage.conn.saving', 'Salvando...') : t('botPage.conn.save', 'Salvar Conexão')}
                 </button>
               </form>
             </div>
@@ -371,26 +373,26 @@ export default function BotsPage() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Shield size={18} style={{ color: isConnected ? '#5865F2' : '#f59e0b' }} />
-                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Configuração de Interactions</h3>
+                    <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{t('botPage.inter.title', 'Configuração de Interactions')}</h3>
                     {isConnected && (
-                      <span className="badge badge-success" style={{ fontSize: 11 }}>Bot Conectado</span>
+                      <span className="badge badge-success" style={{ fontSize: 11 }}>{t('botPage.inter.connected', 'Bot Conectado')}</span>
                     )}
                   </div>
                   <span className="badge" style={{
                     background: isConnected ? 'rgba(88,101,242,0.15)' : 'rgba(245,158,11,0.15)',
                     color: isConnected ? '#5865F2' : '#f59e0b',
                     fontSize: 11,
-                  }}>Obrigatório</span>
+                  }}>{t('botPage.inter.required', 'Obrigatório')}</span>
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 16 }}>
                   {isConnected
-                    ? 'Configure esta URL no Discord Developer Portal para ativar os painéis de vendas'
-                    : '⚠️ Conecte o bot primeiro na seção acima, depois configure esta URL'}
+                    ? t('botPage.inter.descConnected', 'Configure esta URL no Discord Developer Portal para ativar os painéis de vendas')
+                    : t('botPage.inter.descDisconnected', '⚠️ Conecte o bot primeiro na seção acima, depois configure esta URL')}
                 </p>
 
                 <div style={{ marginBottom: 12 }}>
                   <label style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, display: 'block' }}>
-                    Interactions Endpoint URL
+                    {t('botPage.inter.urlLabel', 'Interactions Endpoint URL')}
                   </label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <div style={{
@@ -399,7 +401,7 @@ export default function BotsPage() {
                       fontFamily: 'monospace', fontSize: 12, wordBreak: 'break-all',
                       color: interactionsUrl ? 'var(--text-primary)' : 'var(--text-muted)',
                     }}>
-                      {interactionsUrl || 'Salve a conexão para gerar a URL'}
+                      {interactionsUrl || t('botPage.inter.urlPlaceholder', 'Salve a conexão para gerar a URL')}
                     </div>
                     <button className="btn btn-ghost btn-sm" onClick={() => copyUrl(interactionsUrl)}
                       disabled={!interactionsUrl} style={{ padding: '8px 10px' }}>
@@ -411,12 +413,12 @@ export default function BotsPage() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                   <button className="btn btn-ghost btn-sm" onClick={testInteractionsEndpoint}
                     disabled={testingEndpoint || !interactionsUrl}>
-                    {testingEndpoint ? 'Testando...' : '🧪 Testar Endpoint'}
+                    {testingEndpoint ? t('botPage.inter.testingBtn', 'Testando...') : t('botPage.inter.testBtn', '🧪 Testar Endpoint')}
                   </button>
                   <button className="btn btn-ghost btn-sm" onClick={regenerateInteractionsUrl}
                     disabled={regenerating || !interactionsUrl} style={{ gap: 6 }}>
                     <RefreshCw size={14} className={regenerating ? 'animate-spin' : ''} />
-                    {regenerating ? 'Regenerando...' : 'Regenerar URL'}
+                    {regenerating ? t('botPage.inter.regeneratingBtn', 'Regenerando...') : t('botPage.inter.regenBtn', 'Regenerar URL')}
                   </button>
                   {testResult && (
                     <span style={{ fontSize: 13, color: testResult.success ? 'var(--success)' : 'var(--danger)', alignSelf: 'center' }}>
@@ -432,8 +434,7 @@ export default function BotsPage() {
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
                     <Shield size={16} style={{ color: '#5865F2', marginTop: 2, flexShrink: 0 }} />
                     <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                      <strong>🔒 URL Única e Segura:</strong> Esta URL é exclusiva para o seu bot e contém um token de segurança.
-                      Se comprometida, regenere-a.
+                      <strong>{t('botPage.inter.securityTitle', '🔒 URL Única e Segura:')}</strong> {t('botPage.inter.securityDesc', 'Esta URL é exclusiva para o seu bot e contém um token de segurança. Se comprometida, regenere-a.')}
                     </span>
                   </div>
                 </div>
@@ -441,21 +442,21 @@ export default function BotsPage() {
                 <div style={{
                   marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)',
                 }}>
-                  <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>📋 Como configurar:</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>{t('botPage.inter.howToTitle', '📋 Como configurar:')}</p>
                   <ol style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 2, paddingLeft: 20 }}>
-                    <li>Acesse o{' '}
+                    <li>{t('botPage.inter.howTo1', 'Acesse o')}{' '}
                       <a href="https://discord.com/developers/applications" target="_blank" rel="noopener noreferrer"
                         style={{ color: '#5865F2', textDecoration: 'underline' }}>
                         Discord Developer Portal <ExternalLink size={12} style={{ display: 'inline', verticalAlign: 'middle' }} />
                       </a>
                     </li>
-                    <li>Selecione sua aplicação/bot</li>
-                    <li>Vá em <strong>General Information</strong></li>
-                    <li>Cole a URL acima no campo <strong>Interactions Endpoint URL</strong></li>
-                    <li>Clique em <strong>Save Changes</strong></li>
+                    <li>{t('botPage.inter.howTo2', 'Selecione sua aplicação/bot')}</li>
+                    <li>{t('botPage.inter.howTo3', 'Vá em General Information')}</li>
+                    <li>{t('botPage.inter.howTo4', 'Cole a URL acima no campo Interactions Endpoint URL')}</li>
+                    <li>{t('botPage.inter.howTo5', 'Clique em Save Changes')}</li>
                   </ol>
                   <p style={{ fontSize: 12, color: 'var(--success)', marginTop: 8 }}>
-                    ✅ Após configurar, os painéis de vendas funcionarão automaticamente!
+                    {t('botPage.inter.successMsg', '✅ Após configurar, os painéis de vendas funcionarão automaticamente!')}
                   </p>
                 </div>
               </div>
@@ -467,98 +468,98 @@ export default function BotsPage() {
         {activeTab === 'settings' && (
           <div className="card" style={{ maxWidth: 600 }}>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>
-              {platform === 'discord' ? 'Configurações do Discord' : 'Mensagens do Bot'}
+              {platform === 'discord' ? t('botPage.settings.titleDiscord', 'Configurações do Discord') : t('botPage.settings.titleBot', 'Mensagens do Bot')}
             </h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginBottom: 20 }}>
               {platform === 'discord'
-                ? 'Configure como o bot entrega produtos e gerencia o servidor.'
-                : 'Configure as mensagens automáticas enviadas pelo bot.'}
+                ? t('botPage.settings.descDiscord', 'Configure como o bot entrega produtos e gerencia o servidor.')
+                : t('botPage.settings.descBot', 'Configure as mensagens automáticas enviadas pelo bot.')}
             </p>
             <form onSubmit={handleSaveConfig}>
               <div className="form-group">
-                <label>Mensagem de Entrega</label>
+                <label>{t('botPage.settings.delivMsg', 'Mensagem de Entrega')}</label>
                 <textarea className="input" rows={4} value={configForm.deliveryMessage}
                   onChange={(e) => setConfigForm({ ...configForm, deliveryMessage: e.target.value })}
-                  placeholder="Mensagem enviada após a compra ser aprovada"
+                  placeholder={t('botPage.settings.delivMsgPlaceholder', 'Mensagem enviada após a compra ser aprovada')}
                   style={{ resize: 'vertical' }} />
               </div>
               <div className="form-group">
-                <label>Mensagem de Assinatura Inativa</label>
+                <label>{t('botPage.settings.inactiveMsg', 'Mensagem de Assinatura Inativa')}</label>
                 <textarea className="input" rows={3} value={configForm.inactiveSubscriptionMessage}
                   onChange={(e) => setConfigForm({ ...configForm, inactiveSubscriptionMessage: e.target.value })}
-                  placeholder="Mensagem enviada quando a assinatura expira"
+                  placeholder={t('botPage.settings.inactiveMsgPlaceholder', 'Mensagem enviada quando a assinatura expira')}
                   style={{ resize: 'vertical' }} />
               </div>
 
               {platform === 'discord' && (
                 <>
                   <div className="form-group">
-                    <label>Tipo de Entrega</label>
+                    <label>{t('botPage.settings.delivType', 'Tipo de Entrega')}</label>
                     <select className="input" value={configForm.discordDeliveryType}
                       onChange={(e) => setConfigForm({ ...configForm, discordDeliveryType: e.target.value })}>
-                      <option value="automatic">Automática (Bot entrega no carrinho)</option>
-                      <option value="manual_role">Manual com Staff (Adiciona membros do cargo ao carrinho)</option>
-                      <option value="manual_notify">Manual com Notificação (Apenas menciona o cargo)</option>
+                      <option value="automatic">{t('botPage.settings.delivTypeAuto', 'Automática (Bot entrega no carrinho)')}</option>
+                      <option value="manual_role">{t('botPage.settings.delivTypeManual', 'Manual com Staff (Adiciona membros do cargo ao carrinho)')}</option>
+                      <option value="manual_notify">{t('botPage.settings.delivTypeNotify', 'Manual com Notificação (Apenas menciona o cargo)')}</option>
                     </select>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
-                      Automática: Para produtos digitais. Manual: Para produtos que precisam de ação humana.
+                      {t('botPage.settings.delivTypeHint', 'Automática: Para produtos digitais. Manual: Para produtos que precisam de ação humana.')}
                     </span>
                   </div>
 
                   {configForm.discordDeliveryType === 'manual_role' && (
                     <div className="form-group">
-                      <label>ID do Cargo de Staff</label>
+                      <label>{t('botPage.settings.staffRole', 'ID do Cargo de Staff')}</label>
                       <input className="input" value={configForm.discordDeliveryRoleId}
                         onChange={(e) => setConfigForm({ ...configForm, discordDeliveryRoleId: e.target.value })}
-                        placeholder="Membros com este cargo serão adicionados ao carrinho" />
+                        placeholder={t('botPage.settings.staffRolePlaceholder', 'Membros com este cargo serão adicionados ao carrinho')} />
                     </div>
                   )}
 
                   {configForm.discordDeliveryType === 'manual_notify' && (
                     <div className="form-group">
-                      <label>ID do Cargo de Vendedor</label>
+                      <label>{t('botPage.settings.sellerRole', 'ID do Cargo de Vendedor')}</label>
                       <input className="input" value={configForm.discordNotifyRoleId}
                         onChange={(e) => setConfigForm({ ...configForm, discordNotifyRoleId: e.target.value })}
-                        placeholder="Este cargo será mencionado sobre novas vendas" />
+                        placeholder={t('botPage.settings.sellerRolePlaceholder', 'Este cargo será mencionado sobre novas vendas')} />
                     </div>
                   )}
 
                   <div className="form-group">
-                    <label>ID da Categoria de Carrinho</label>
+                    <label>{t('botPage.settings.cartCat', 'ID da Categoria de Carrinho')}</label>
                     <input className="input" value={configForm.discordCartCategoryId}
                       onChange={(e) => setConfigForm({ ...configForm, discordCartCategoryId: e.target.value })}
-                      placeholder="Categoria onde os threads de carrinho serão criados" />
+                      placeholder={t('botPage.settings.cartCatPlaceholder', 'Categoria onde os threads de carrinho serão criados')} />
                   </div>
                   <div className="form-group">
-                    <label>ID do Canal de Log de Vendas</label>
+                    <label>{t('botPage.settings.salesLog', 'ID do Canal de Log de Vendas')}</label>
                     <input className="input" value={configForm.discordSalesLogChannelId}
                       onChange={(e) => setConfigForm({ ...configForm, discordSalesLogChannelId: e.target.value })}
-                      placeholder="Canal onde serão enviados logs de vendas" />
+                      placeholder={t('botPage.settings.salesLogPlaceholder', 'Canal onde serão enviados logs de vendas')} />
                   </div>
                   <div className="form-group" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <input type="checkbox" id="couponsEnabled"
                       checked={configForm.discordCouponsEnabled}
                       onChange={(e) => setConfigForm({ ...configForm, discordCouponsEnabled: e.target.checked })}
                       style={{ width: 'auto' }} />
-                    <label htmlFor="couponsEnabled" style={{ margin: 0 }}>Habilitar cupons no bot</label>
+                    <label htmlFor="couponsEnabled" style={{ margin: 0 }}>{t('botPage.settings.enableCoupons', 'Habilitar cupons no bot')}</label>
                   </div>
                   <div className="form-group">
-                    <label>ID do Cargo de Suporte/Entrega Manual</label>
+                    <label>{t('botPage.settings.supportRole', 'ID do Cargo de Suporte/Entrega Manual')}</label>
                     <input className="input" value={configForm.discordSupportRoleId}
                       onChange={(e) => setConfigForm({ ...configForm, discordSupportRoleId: e.target.value })}
-                      placeholder="Membros que farão atendimento em tickets/carrinhos" />
+                      placeholder={t('botPage.settings.supportRolePlaceholder', 'Membros que farão atendimento em tickets/carrinhos')} />
                   </div>
                   <div className="form-group">
-                    <label>Tempo de exclusão da Thread/Carrinho (minutos)</label>
+                    <label>{t('botPage.settings.archiveTime', 'Tempo de exclusão da Thread/Carrinho (minutos)')}</label>
                     <input className="input" type="number" value={configForm.discordThreadArchiveMinutes}
                       onChange={(e) => setConfigForm({ ...configForm, discordThreadArchiveMinutes: Number(e.target.value) })}
-                      placeholder="Padrão: 1440 (24h)" />
+                      placeholder={t('botPage.settings.archiveTimePlaceholder', 'Padrão: 1440 (24h)')} />
                   </div>
                 </>
               )}
 
               <button type="submit" className="btn btn-primary" disabled={saving}>
-                <Save size={16} /> {saving ? 'Salvando...' : 'Salvar Configurações'}
+                <Save size={16} /> {saving ? t('botPage.settings.saving', 'Salvando...') : t('botPage.settings.save', 'Salvar Configurações')}
               </button>
             </form>
           </div>

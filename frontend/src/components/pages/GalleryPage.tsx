@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Upload, Trash2, Copy, Check, ExternalLink, Image as ImageIcon } from 'lucide-react';
 import api from '../../services/api';
 import PageLoading from '../layout/PageLoading';
+import { useLanguage } from '../../hooks/useLanguage';
 
 interface GalleryImage {
   id: string;
@@ -11,6 +12,7 @@ interface GalleryImage {
 }
 
 export default function GalleryPage() {
+  const { t } = useLanguage();
   const [images, setImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -22,7 +24,7 @@ export default function GalleryPage() {
       const res = await api.get('/api/gallery');
       setImages(res.data);
     } catch (error) {
-      console.error('Erro ao buscar galeria', error);
+      console.error(t('galleryPage.errorFetch'), error);
     } finally {
       setLoading(false);
     }
@@ -46,7 +48,7 @@ export default function GalleryPage() {
       });
       await fetchImages();
     } catch (error) {
-      alert('Erro ao fazer upload da imagem. Verifique se a chave do ImgBB está configurada no .env');
+      alert(t('galleryPage.errorUpload'));
     } finally {
       setUploading(false);
       if (fileInputRef.current) {
@@ -56,12 +58,12 @@ export default function GalleryPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir esta imagem da galeria?')) return;
+    if (!window.confirm(t('galleryPage.deleteConfirm'))) return;
     try {
       await api.delete(`/api/gallery/${id}`);
       setImages(prev => prev.filter(img => img.id !== id));
     } catch (error) {
-      alert('Erro ao excluir imagem.');
+      alert(t('galleryPage.errorDelete'));
     }
   };
 
@@ -77,8 +79,8 @@ export default function GalleryPage() {
     <div className="gallery-page">
       <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1>Galeria de Imagens</h1>
-          <p>Gerencie as imagens enviadas para o ImgBB</p>
+          <h1>{t('galleryPage.title')}</h1>
+          <p>{t('galleryPage.subtitle')}</p>
         </div>
         <div>
           <input
@@ -96,12 +98,12 @@ export default function GalleryPage() {
             {uploading ? (
               <span style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <span className="app-loading-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                Enviando...
+                {t('galleryPage.uploading')}
               </span>
             ) : (
               <>
                 <Upload size={18} />
-                Nova Imagem
+                {t('galleryPage.newImage')}
               </>
             )}
           </button>
@@ -113,8 +115,8 @@ export default function GalleryPage() {
           <div className="empty-state-icon">
             <ImageIcon size={48} />
           </div>
-          <h3>Nenhuma imagem na galeria</h3>
-          <p>Faça upload de uma imagem para começar a usá-la nas configurações ou campanhas.</p>
+          <h3>{t('galleryPage.emptyTitle')}</h3>
+          <p>{t('galleryPage.emptyDesc')}</p>
         </div>
       ) : (
         <div className="gallery-grid" style={{
@@ -141,37 +143,37 @@ export default function GalleryPage() {
               >
                 <img
                   src={image.url}
-                  alt={image.name || 'Imagem'}
+                  alt={image.name || t('galleryPage.imgAlt')}
                   style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                 />
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', gap: '0.5rem' }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {image.name || 'Imagem sem nome'}
+                  {image.name || t('galleryPage.unnamedImg')}
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
                   <button
                     className="btn btn-ghost btn-sm"
                     style={{ flex: 1 }}
                     onClick={() => copyToClipboard(image.id, image.url)}
-                    title="Copiar URL"
+                    title={t('galleryPage.copyUrl')}
                   >
                     {copiedId === image.id ? <Check size={14} className="text-success" /> : <Copy size={14} />}
-                    <span style={{ fontSize: '0.75rem' }}>{copiedId === image.id ? 'Copiado' : 'Copiar'}</span>
+                    <span style={{ fontSize: '0.75rem' }}>{copiedId === image.id ? t('galleryPage.copied') : t('galleryPage.copy')}</span>
                   </button>
                   <a
                     href={image.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-ghost btn-sm"
-                    title="Abrir imagem"
+                    title={t('galleryPage.openImg')}
                   >
                     <ExternalLink size={14} />
                   </a>
                   <button
                     className="btn btn-ghost btn-sm text-error"
                     onClick={() => handleDelete(image.id)}
-                    title="Excluir"
+                    title={t('galleryPage.delete')}
                   >
                     <Trash2 size={14} />
                   </button>

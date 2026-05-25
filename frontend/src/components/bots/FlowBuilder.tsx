@@ -43,23 +43,27 @@ interface FlowBuilderProps {
 
 const uid = () => Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
-const createDefaultFlow = (index: number): BotFlow => {
-  const stepId = uid();
-  return {
-    id: uid(),
-    name: index === 0 ? 'Fluxo Principal' : `Novo Fluxo ${index + 1}`,
-    trigger: index === 0 ? '/start' : `/fluxo${index + 1}`,
-    startStepId: stepId,
-    steps: [{
-      id: stepId,
-      name: 'Mensagem de Boas-Vindas',
-      message: 'Olá, {userName}! 👋 Bem-vindo(a) ao nosso bot.',
-      buttons: [],
-    }],
-  };
-};
+import { useLanguage } from '../../hooks/useLanguage';
 
 export default function FlowBuilder({ flows, onChange, onSave, products, saving }: FlowBuilderProps) {
+  const { t } = useLanguage();
+  
+  const createDefaultFlow = (index: number): BotFlow => {
+    const stepId = uid();
+    return {
+      id: uid(),
+      name: index === 0 ? t('botsPage.flow.mainFlow') : `${t('botsPage.flow.newFlow')} ${index + 1}`,
+      trigger: index === 0 ? '/start' : `/fluxo${index + 1}`,
+      startStepId: stepId,
+      steps: [{
+        id: stepId,
+        name: t('botsPage.flow.welcomeMsg'),
+        message: 'Olá, {userName}! 👋 Bem-vindo(a) ao nosso bot.',
+        buttons: [],
+      }],
+    };
+  };
+
   const [activeFlowIndex, setActiveFlowIndex] = useState(0);
   const [expandedSteps, setExpandedSteps] = useState<Record<string, boolean>>({});
   const [previewStep, setPreviewStep] = useState<BotStep | null>(null);
@@ -87,8 +91,8 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
     const flow = flows[flowIndex];
     const newStep: BotStep = {
       id: uid(),
-      name: `Passo ${flow.steps.length + 1}`,
-      message: 'Escreva sua mensagem aqui...',
+      name: `${t('botsPage.flow.steps')} ${flow.steps.length + 1}`,
+      message: t('botsPage.flow.emptyMsg'),
       buttons: [],
     };
     const updatedSteps = [...flow.steps, newStep];
@@ -122,7 +126,7 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
 
   const addButton = (flowIndex: number, stepIndex: number) => {
     const step = flows[flowIndex].steps[stepIndex];
-    const newBtn: BotButton = { id: uid(), text: 'Novo Botão', action: { type: 'GO_TO_STEP', payload: '' } };
+    const newBtn: BotButton = { id: uid(), text: t('botsPage.flow.button'), action: { type: 'GO_TO_STEP', payload: '' } };
     updateStep(flowIndex, stepIndex, { buttons: [...step.buttons, newBtn] });
   };
 
@@ -158,13 +162,13 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>Construtor de Fluxo</h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, margin: 0 }}>{t('botsPage.flow.builderTitle')}</h3>
             <p style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 2 }}>
-              Crie fluxos de conversa ativados por comandos.
+              {t('botsPage.flow.builderDesc')}
             </p>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={addFlow}>
-            <Plus size={14} /> Adicionar Fluxo
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => addFlow()}>
+            <Plus size={14} /> {t('botsPage.flow.addFlow')}
           </button>
         </div>
 
@@ -177,7 +181,7 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                 className={`tab-btn ${activeFlowIndex === i ? 'active' : ''}`}
                 onClick={() => setActiveFlowIndex(i)}
               >
-                {flow.name || `Fluxo ${i + 1}`}
+                {flow.name || `${t('botsPage.flow.newFlow')} ${i + 1}`}
               </button>
             ))}
           </div>
@@ -186,30 +190,30 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
         {activeFlow && (
           <div className="card" style={{ marginBottom: 16 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <span style={{ fontSize: 14, fontWeight: 600 }}>Configurações do Fluxo</span>
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{t('botsPage.flow.flowSettings')}</span>
               {flows.length > 1 && activeFlow.trigger !== '/start' && (
                 <button type="button" className="btn btn-danger btn-sm" onClick={() => removeFlow(activeFlowIndex)}>
-                  <Trash2 size={14} /> Remover
+                  <Trash2 size={14} /> {t('botsPage.flow.remove')}
                 </button>
               )}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div className="form-group">
-                <label>Nome do Fluxo</label>
+                <label>{t('botsPage.flow.flowName')}</label>
                 <input
                   className="input"
                   value={activeFlow.name}
                   onChange={(e) => updateFlow(activeFlowIndex, { name: e.target.value })}
-                  placeholder="Ex: Boas-vindas"
+                  placeholder={t('botsPage.flow.flowNamePlaceholder')}
                 />
               </div>
               <div className="form-group">
-                <label>Comando de Ativação</label>
+                <label>{t('botsPage.flow.trigger')}</label>
                 <input
                   className="input"
                   value={activeFlow.trigger}
                   onChange={(e) => updateFlow(activeFlowIndex, { trigger: e.target.value })}
-                  placeholder="Ex: /start"
+                  placeholder={t('botsPage.flow.triggerPlaceholder')}
                   disabled={activeFlow.trigger === '/start'}
                 />
               </div>
@@ -217,9 +221,9 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
 
             <div style={{ marginBottom: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>Passos ({activeFlow.steps.length})</span>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>{t('botsPage.flow.steps')} ({activeFlow.steps.length})</span>
                 <button type="button" className="btn btn-ghost btn-sm" onClick={() => addStep(activeFlowIndex)}>
-                  <Plus size={14} /> Adicionar Passo
+                  <Plus size={14} /> {t('botsPage.flow.addStep')}
                 </button>
               </div>
 
@@ -240,8 +244,8 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                         onClick={() => toggleStep(step)}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontWeight: 600, fontSize: 14 }}>{step.name}</span>
-                          {isStart && <span className="badge badge-success" style={{ fontSize: 11 }}>Inicial</span>}
-                          {isPreviewActive && !isStart && <span className="badge" style={{ fontSize: 11, background: 'rgba(124,58,237,0.2)', color: 'var(--accent)' }}>Preview</span>}
+                          {isStart && <span className="badge badge-success" style={{ fontSize: 11 }}>{t('botsPage.flow.initial')}</span>}
+                          {isPreviewActive && !isStart && <span className="badge" style={{ fontSize: 11, background: 'rgba(124,58,237,0.2)', color: 'var(--accent)' }}>{t('botsPage.flow.preview')}</span>}
                         </div>
                         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                           <button type="button" className="btn btn-ghost btn-sm"
@@ -263,26 +267,26 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                       {isExpanded && (
                         <div style={{ marginTop: 12 }}>
                           <div className="form-group">
-                            <label>Nome do Passo</label>
+                            <label>{t('botsPage.flow.stepName')}</label>
                             <input className="input" value={step.name}
                               onChange={(e) => updateStep(activeFlowIndex, stepIndex, { name: e.target.value })} />
                           </div>
                           <div className="form-group">
-                            <label>Mensagem</label>
+                            <label>{t('botsPage.flow.message')}</label>
                             <textarea className="input" rows={4} value={step.message}
                               style={{ resize: 'vertical' }}
                               onChange={(e) => updateStep(activeFlowIndex, stepIndex, { message: e.target.value })} />
                             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                              Suporta *negrito*, _itálico_, `código`. Variáveis: {'{userName}'}, {'{userEmail}'}
+                              {t('botsPage.flow.messageHint')}
                             </span>
                           </div>
 
                           <div style={{ marginTop: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                              <span style={{ fontSize: 13, fontWeight: 600 }}>Botões ({step.buttons.length})</span>
+                              <span style={{ fontSize: 13, fontWeight: 600 }}>{t('botsPage.flow.buttons')} ({step.buttons.length})</span>
                               <button type="button" className="btn btn-ghost btn-sm"
                                 onClick={() => addButton(activeFlowIndex, stepIndex)} style={{ fontSize: 12 }}>
-                                <Plus size={12} /> Botão
+                                <Plus size={12} /> {t('botsPage.flow.button')}
                               </button>
                             </div>
                             {step.buttons.map((btn, btnIndex) => (
@@ -295,22 +299,22 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                               }}>
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
                                   <div className="form-group" style={{ margin: 0 }}>
-                                    <label style={{ fontSize: 11 }}>Texto</label>
+                                    <label style={{ fontSize: 11 }}>{t('botsPage.flow.text')}</label>
                                     <input className="input" value={btn.text}
                                       onChange={(e) => updateButton(activeFlowIndex, stepIndex, btnIndex, { text: e.target.value })}
                                       style={{ padding: '8px 10px', fontSize: 13 }} />
                                   </div>
                                   <div className="form-group" style={{ margin: 0 }}>
-                                    <label style={{ fontSize: 11 }}>Ação</label>
+                                    <label style={{ fontSize: 11 }}>{t('botsPage.flow.action')}</label>
                                     <select className="input" value={btn.action.type}
                                       onChange={(e) => updateButton(activeFlowIndex, stepIndex, btnIndex, {
                                         action: { type: e.target.value as BotAction['type'], payload: '' },
                                       })}
                                       style={{ padding: '8px 10px', fontSize: 13 }}>
-                                      <option value="GO_TO_STEP">Ir para passo</option>
-                                      <option value="LINK_TO_PRODUCT">Link para produto</option>
-                                      <option value="MAIN_MENU">Menu principal</option>
-                                      <option value="SHOW_PROFILE">Mostrar perfil</option>
+                                      <option value="GO_TO_STEP">{t('botsPage.flow.goToStep')}</option>
+                                      <option value="LINK_TO_PRODUCT">{t('botsPage.flow.linkToProduct')}</option>
+                                      <option value="MAIN_MENU">{t('botsPage.flow.mainMenu')}</option>
+                                      <option value="SHOW_PROFILE">{t('botsPage.flow.showProfile')}</option>
                                     </select>
                                   </div>
                                   <button type="button" className="btn btn-danger btn-sm"
@@ -321,13 +325,13 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                                 </div>
                                 {btn.action.type === 'GO_TO_STEP' && (
                                   <div className="form-group" style={{ margin: '8px 0 0' }}>
-                                    <label style={{ fontSize: 11 }}>Passo destino</label>
+                                    <label style={{ fontSize: 11 }}>{t('botsPage.flow.destStep')}</label>
                                     <select className="input" value={btn.action.payload || ''}
                                       onChange={(e) => updateButton(activeFlowIndex, stepIndex, btnIndex, {
                                         action: { ...btn.action, payload: e.target.value },
                                       })}
                                       style={{ padding: '8px 10px', fontSize: 13 }}>
-                                      <option value="">Selecione...</option>
+                                      <option value="">{t('botsPage.flow.select')}</option>
                                       {activeFlow.steps.filter(s => s.id !== step.id).map(s => (
                                         <option key={s.id} value={s.id}>{s.name}</option>
                                       ))}
@@ -336,13 +340,13 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
                                 )}
                                 {btn.action.type === 'LINK_TO_PRODUCT' && products.length > 0 && (
                                   <div className="form-group" style={{ margin: '8px 0 0' }}>
-                                    <label style={{ fontSize: 11 }}>Produto</label>
+                                    <label style={{ fontSize: 11 }}>{t('botsPage.flow.product')}</label>
                                     <select className="input" value={btn.action.payload || ''}
                                       onChange={(e) => updateButton(activeFlowIndex, stepIndex, btnIndex, {
                                         action: { ...btn.action, payload: e.target.value },
                                       })}
                                       style={{ padding: '8px 10px', fontSize: 13 }}>
-                                      <option value="">Selecione...</option>
+                                      <option value="">{t('botsPage.flow.select')}</option>
                                       {products.map(p => (
                                         <option key={p.id} value={p.id}>{p.name}</option>
                                       ))}
@@ -362,7 +366,7 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
 
             <button type="button" className="btn btn-primary" disabled={saving}
               onClick={() => onSave(flows)}>
-              <Save size={16} /> {saving ? 'Salvando...' : 'Salvar Fluxos'}
+              <Save size={16} /> {saving ? t('botsPage.flow.saving') : t('botsPage.flow.saveFlows')}
             </button>
           </div>
         )}
@@ -405,11 +409,11 @@ export default function FlowBuilder({ flows, onChange, onSave, products, saving 
             textAlign: 'center',
             padding: 24,
           }}>
-            Crie um fluxo para ver o preview
+            {t('botsPage.flow.livePreviewEmpty')}
           </div>
         )}
         <span style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center' }}>
-          Clique em um passo para visualizá-lo aqui
+          {t('botsPage.flow.livePreviewHint')}
         </span>
       </div>
     </div>

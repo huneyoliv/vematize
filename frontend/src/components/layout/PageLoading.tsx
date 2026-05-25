@@ -1,3 +1,5 @@
+import { useLanguage } from '../../hooks/useLanguage';
+
 interface PageLoadingProps {
   showTitle?: boolean;
   stats?: boolean;
@@ -5,8 +7,9 @@ interface PageLoadingProps {
 }
 
 export default function PageLoading({ showTitle = true, stats = false, table = false }: PageLoadingProps) {
+  const { t } = useLanguage();
   return (
-    <div className="page-loading" aria-busy="true" aria-label="Carregando">
+    <div className="page-loading" aria-busy="true" aria-label={t('pageLoading.loading')}>
       {showTitle && (
         <div className="page-header">
           <div className="skeleton skeleton-line skeleton-line--title" />

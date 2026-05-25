@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import DOMPurify from 'dompurify';
 import api from '../../services/api';
 import { Send, Users, Image, MessageSquare, CheckCircle2, XCircle, AlertCircle, Bold, Italic, Underline, Strikethrough, Code, Link as LinkIcon, EyeOff } from 'lucide-react';
+import { useLanguage } from '../../hooks/useLanguage';
 
 interface CampaignResult {
   total: number;
@@ -16,6 +17,7 @@ export default function CampaignPage() {
   const [result, setResult] = useState<CampaignResult | null>(null);
   const [error, setError] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { t } = useLanguage();
 
   const insertFormat = (prefix: string, suffix: string) => {
     const el = textareaRef.current;
@@ -48,7 +50,7 @@ export default function CampaignPage() {
       });
       setResult(res.data);
     } catch (err: any) {
-      setError(err?.response?.data?.message || 'Erro ao enviar campanha.');
+      setError(err?.response?.data?.message || t('campaignPage.errorSend', 'Erro ao enviar campanha.'));
     }
     setSending(false);
   };
@@ -57,15 +59,15 @@ export default function CampaignPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Campanhas</h1>
-        <p>Envie mensagens e promoções diretamente para os seus usuários via Telegram</p>
+        <h1>{t('campaignPage.title', 'Campanhas')}</h1>
+        <p>{t('campaignPage.subtitle', 'Envie mensagens e promoções diretamente para os seus usuários via Telegram')}</p>
       </div>
 
       <div className="campaign-layout">
         <div className="campaign-form-col">
           <div className="card">
-            <h3 className="settings-section-title" style={{ marginBottom: 4 }}>Nova Campanha</h3>
-            <p className="settings-section-desc">A mensagem será enviada para todos os usuários que já interagiram com o bot.</p>
+            <h3 className="settings-section-title" style={{ marginBottom: 4 }}>{t('campaignPage.newCampaign', 'Nova Campanha')}</h3>
+            <p className="settings-section-desc">{t('campaignPage.newCampaignDesc', 'A mensagem será enviada para todos os usuários que já interagiram com o bot.')}</p>
 
             {error && (
               <div className="alert-banner alert-banner--error" style={{ marginBottom: 20 }}>
@@ -77,47 +79,47 @@ export default function CampaignPage() {
               <div className="form-group">
                 <label>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <MessageSquare size={14} /> Mensagem
+                    <MessageSquare size={14} /> {t('campaignPage.msgLabel', 'Mensagem')}
                   </span>
                 </label>
                 <div style={{ display: 'flex', gap: 4, marginBottom: 8, flexWrap: 'wrap' }}>
-                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('*', '*')} title="Negrito"><Bold size={16} /></button>
-                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('_', '_')} title="Itálico"><Italic size={16} /></button>
-                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('~', '~')} title="Tachado"><Strikethrough size={16} /></button>
-                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('`', '`')} title="Monoespaçado"><Code size={16} /></button>
-                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('||', '||')} title="Spoiler"><EyeOff size={16} /></button>
-                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('[texto](', ')')} title="Link"><LinkIcon size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('*', '*')} title={t('campaignPage.btnBold', 'Negrito')}><Bold size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('_', '_')} title={t('campaignPage.btnItalic', 'Itálico')}><Italic size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('~', '~')} title={t('campaignPage.btnStrike', 'Tachado')}><Strikethrough size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('`', '`')} title={t('campaignPage.btnMono', 'Monoespaçado')}><Code size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('||', '||')} title={t('campaignPage.btnSpoiler', 'Spoiler')}><EyeOff size={16} /></button>
+                  <button type="button" className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => insertFormat('[texto](', ')')} title={t('campaignPage.btnLink', 'Link')}><LinkIcon size={16} /></button>
                 </div>
                 <textarea
                   ref={textareaRef}
                   className="input campaign-textarea"
                   value={form.message}
                   onChange={(e) => setForm({ ...form, message: e.target.value })}
-                  placeholder="Digite sua mensagem usando a formatação do Telegram (*negrito*, _itálico_, ~tachado~)..."
+                  placeholder={t('campaignPage.msgPlaceholder', 'Digite sua mensagem usando a formatação do Telegram (*negrito*, _itálico_, ~tachado~)...')}
                   required
                   rows={8}
                 />
-                <span className="settings-hint">Utilize a barra acima para aplicar a formatação nativa do Telegram.</span>
+                <span className="settings-hint">{t('campaignPage.msgHint', 'Utilize a barra acima para aplicar a formatação nativa do Telegram.')}</span>
               </div>
 
               <div className="form-group">
                 <label>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <Image size={14} /> URL da Imagem (opcional)
+                    <Image size={14} /> {t('campaignPage.imgLabel', 'URL da Imagem (opcional)')}
                   </span>
                 </label>
                 <input
                   className="input"
                   value={form.imageUrl}
                   onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  placeholder="https://exemplo.com/imagem.jpg"
+                  placeholder={t('campaignPage.imgPlaceholder', 'https://exemplo.com/imagem.jpg')}
                 />
-                <span className="settings-hint">Se informada, a imagem será enviada junto com a mensagem como legenda.</span>
+                <span className="settings-hint">{t('campaignPage.imgHint', 'Se informada, a imagem será enviada junto com a mensagem como legenda.')}</span>
               </div>
 
               <button type="submit" className="btn btn-primary" disabled={sending || !form.message.trim()} style={{ width: '100%' }}>
                 <Send size={16} />
-                {sending ? 'Enviando...' : 'Enviar Campanha'}
+                {sending ? t('campaignPage.sendingBtn', 'Enviando...') : t('campaignPage.sendBtn', 'Enviar Campanha')}
               </button>
             </form>
           </div>
@@ -125,7 +127,7 @@ export default function CampaignPage() {
 
         <div className="campaign-preview-col">
           <div className="card campaign-preview-card">
-            <h3 className="settings-section-title" style={{ marginBottom: 16 }}>Preview da Mensagem</h3>
+            <h3 className="settings-section-title" style={{ marginBottom: 16 }}>{t('campaignPage.previewTitle', 'Preview da Mensagem')}</h3>
             <div className="telegram-preview">
               <div className="telegram-preview-bubble">
                 {form.imageUrl && (
@@ -154,7 +156,7 @@ export default function CampaignPage() {
                     }}
                   />
                 ) : (
-                  <span className="telegram-preview-placeholder">Sua mensagem aparecerá aqui...</span>
+                  <span className="telegram-preview-placeholder">{t('campaignPage.previewPlaceholder', 'Sua mensagem aparecerá aqui...')}</span>
                 )}
               </div>
             </div>
@@ -162,33 +164,33 @@ export default function CampaignPage() {
 
           {result && (
             <div className="card campaign-result-card">
-              <h3 className="settings-section-title" style={{ marginBottom: 16 }}>Resultado do Envio</h3>
+              <h3 className="settings-section-title" style={{ marginBottom: 16 }}>{t('campaignPage.resultTitle', 'Resultado do Envio')}</h3>
               <div className="campaign-stats">
                 <div className="campaign-stat">
                   <Users size={20} className="campaign-stat-icon campaign-stat-icon--total" />
                   <div>
                     <span className="campaign-stat-value">{result.total}</span>
-                    <span className="campaign-stat-label">Total</span>
+                    <span className="campaign-stat-label">{t('campaignPage.statTotal', 'Total')}</span>
                   </div>
                 </div>
                 <div className="campaign-stat">
                   <CheckCircle2 size={20} className="campaign-stat-icon campaign-stat-icon--sent" />
                   <div>
                     <span className="campaign-stat-value campaign-stat-value--success">{result.sent}</span>
-                    <span className="campaign-stat-label">Enviados</span>
+                    <span className="campaign-stat-label">{t('campaignPage.statSent', 'Enviados')}</span>
                   </div>
                 </div>
                 <div className="campaign-stat">
                   <XCircle size={20} className="campaign-stat-icon campaign-stat-icon--failed" />
                   <div>
                     <span className="campaign-stat-value campaign-stat-value--danger">{result.failed}</span>
-                    <span className="campaign-stat-label">Falhas</span>
+                    <span className="campaign-stat-label">{t('campaignPage.statFailed', 'Falhas')}</span>
                   </div>
                 </div>
               </div>
               {result.errors.length > 0 && (
                 <div className="campaign-errors">
-                  <p className="campaign-errors-title">Usuários com falha:</p>
+                  <p className="campaign-errors-title">{t('campaignPage.failedUsers', 'Usuários com falha:')}</p>
                   {result.errors.slice(0, 5).map((e, i) => (
                     <div key={i} className="campaign-error-item">
                       <code className="cell-mono" style={{ fontSize: 11 }}>{e.userId.slice(0, 8)}...</code>
@@ -197,7 +199,7 @@ export default function CampaignPage() {
                   ))}
                   {result.errors.length > 5 && (
                     <p style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
-                      + {result.errors.length - 5} outras falhas
+                      + {result.errors.length - 5} {t('campaignPage.otherFails', 'outras falhas')}
                     </p>
                   )}
                 </div>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Tag } from 'lucide-react';
 import api from '../../services/api';
 import PageLoading from '../layout/PageLoading';
+import { useLanguage } from '../../hooks/useLanguage';
 
 interface Sale {
   id: string;
@@ -24,6 +25,7 @@ interface Product {
 }
 
 export default function SalesPage() {
+  const { t } = useLanguage();
   const [sales, setSales] = useState<Sale[]>([]);
   const [products, setProducts] = useState<Record<string, Product>>({});
   const [loading, setLoading] = useState(true);
@@ -46,19 +48,19 @@ export default function SalesPage() {
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'approved': return <span className="badge badge-success">Aprovada</span>;
-      case 'pending': return <span className="badge badge-warning">Pendente</span>;
-      case 'failed': return <span className="badge badge-danger">Falhou</span>;
+      case 'approved': return <span className="badge badge-success">{t('salesPage.statusApproved')}</span>;
+      case 'pending': return <span className="badge badge-warning">{t('salesPage.statusPending')}</span>;
+      case 'failed': return <span className="badge badge-danger">{t('salesPage.statusFailed')}</span>;
       default: return <span className="badge badge-muted">{status}</span>;
     }
   };
 
   const getGatewayLabel = (gw: string) => {
     switch (gw) {
-      case 'mercadopago': return 'Mercado Pago';
-      case 'efi': return 'Efí';
-      case 'free': return 'Grátis';
-      case 'pending': return 'Pendente';
+      case 'mercadopago': return t('salesPage.gwMercadoPago');
+      case 'efi': return t('salesPage.gwEfi');
+      case 'free': return t('salesPage.gwFree');
+      case 'pending': return t('salesPage.gwPending');
       default: return gw;
     }
   };
@@ -77,26 +79,26 @@ export default function SalesPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Vendas</h1>
-        <p>Histórico de vendas</p>
+        <h1>{t('salesPage.title')}</h1>
+        <p>{t('salesPage.subtitle')}</p>
       </div>
 
       {!loading && sales.length > 0 && (
         <div className="grid grid-4 stats-grid">
           <div className="stat-card">
-            <span className="stat-label">Total de Vendas</span>
+            <span className="stat-label">{t('salesPage.statTotal')}</span>
             <span className="stat-value">{sales.length}</span>
           </div>
           <div className="stat-card">
-            <span className="stat-label">Aprovadas</span>
+            <span className="stat-label">{t('salesPage.statApproved')}</span>
             <span className="stat-value">{approvedCount}</span>
           </div>
           <div className="stat-card">
-            <span className="stat-label">Receita Total</span>
+            <span className="stat-label">{t('salesPage.statRevenue')}</span>
             <span className="stat-value stat-value--currency">{formatCurrency(totalRevenue)}</span>
           </div>
           <div className="stat-card">
-            <span className="stat-label">Pendentes</span>
+            <span className="stat-label">{t('salesPage.statPending')}</span>
             <span className="stat-value">{sales.filter(s => s.status === 'pending').length}</span>
           </div>
         </div>
@@ -106,20 +108,20 @@ export default function SalesPage() {
         <PageLoading stats table />
       ) : sales.length === 0 ? (
         <div className="empty-state">
-          <h3>Nenhuma venda encontrada</h3>
-          <p>As vendas aparecerão aqui conforme forem realizadas.</p>
+          <h3>{t('salesPage.emptyTitle')}</h3>
+          <p>{t('salesPage.emptyDesc')}</p>
         </div>
       ) : (
         <div className="table-container">
           <table>
             <thead>
               <tr>
-                <th>Produto</th>
-                <th>Valor</th>
-                <th>Gateway</th>
-                <th>Plataforma</th>
-                <th>Status</th>
-                <th>Data</th>
+                <th>{t('salesPage.thProduct')}</th>
+                <th>{t('salesPage.thValue')}</th>
+                <th>{t('salesPage.thGateway')}</th>
+                <th>{t('salesPage.thPlatform')}</th>
+                <th>{t('salesPage.thStatus')}</th>
+                <th>{t('salesPage.thDate')}</th>
               </tr>
             </thead>
             <tbody>
