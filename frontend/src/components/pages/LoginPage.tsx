@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useLanguage } from '../../hooks/useLanguage';
 import { useNavigate } from 'react-router-dom';
+import logoImg from '../../assets/logo.png';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -30,7 +31,7 @@ export default function LoginPage() {
     <div className="login-container">
       <div className="card login-card">
         <div className="login-brand" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-          <img src="/logo.png" alt="Vematize" style={{ height: '48px', width: 'auto', objectFit: 'contain', marginBottom: '0.5rem' }} />
+          <img src={logoImg} alt="Vematize" style={{ height: '48px', width: 'auto', objectFit: 'contain', marginBottom: '0.5rem' }} />
           <p className="login-subtitle">{t('login.subtitle')}</p>
         </div>
         <form onSubmit={handleSubmit}>

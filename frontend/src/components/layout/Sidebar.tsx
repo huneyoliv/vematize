@@ -13,6 +13,7 @@ import {
   Megaphone,
   Image as ImageIcon,
 } from 'lucide-react';
+import logoImg from '../../assets/logo.png';
 
 const IS_PREVIEW = import.meta.env.VITE_PREVIEW_MODE === 'true';
 const APP_PREFIX = IS_PREVIEW ? '/app' : '';
@@ -42,7 +43,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <img src="/logo.png" alt="Vematize" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
+        <img src={logoImg} alt="Vematize" style={{ height: '24px', width: 'auto', objectFit: 'contain' }} />
       </div>
       <nav className="sidebar-nav">
         {navItems.map((item) => (

@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useLanguage } from '../../hooks/useLanguage';
+import logoImg from '../../assets/logo.png';
 import { 
   Bot, 
   CreditCard, 
@@ -883,7 +884,7 @@ export default function LandingPage() {
       <header className={`lp-header ${scrollY > 20 ? 'scrolled' : ''}`}>
         <div className="lp-header-content">
           <div className="lp-logo-container">
-            <img src="/logo.png" alt="Vematize Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+            <img src={logoImg} alt="Vematize Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
             <span className="lp-logo-badge">{t('landing.badge')}</span>
           </div>
           <button onClick={handleStart} className="lp-btn-nav">
