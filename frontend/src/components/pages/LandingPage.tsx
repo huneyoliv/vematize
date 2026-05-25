@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import { useLanguage } from '../../hooks/useLanguage';
 import { 
   Bot, 
   CreditCard, 
@@ -20,6 +21,7 @@ import {
 export default function LandingPage() {
   const navigate = useNavigate();
   const [scrollY, setScrollY] = useState(0);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -34,39 +36,39 @@ export default function LandingPage() {
   const features = [
     {
       icon: <Bot size={24} className="text-violet-400" />,
-      title: 'Bots Inteligentes',
-      description: 'Integração completa com Telegram e Discord. Crie fluxos dinâmicos baseados em gatilhos específicos e mensagens personalizadas.',
-      tag: 'Canais'
+      title: t('landing.features.items.botsTitle'),
+      description: t('landing.features.items.botsDesc'),
+      tag: t('landing.features.channels')
     },
     {
       icon: <CreditCard size={24} className="text-emerald-400" />,
-      title: 'Multi-gateway PIX',
-      description: 'Suporte nativo aos gateways Mercado Pago e Efí Bank com PIX automatizado, conciliação em tempo real e retorno instantâneo.',
-      tag: 'Pagamentos'
+      title: t('landing.features.items.gatewaysTitle'),
+      description: t('landing.features.items.gatewaysDesc'),
+      tag: t('landing.features.payments')
     },
     {
       icon: <Zap size={24} className="text-amber-400" />,
-      title: 'Entrega Automatizada',
-      description: 'Envio automático de chaves de ativação, convites para grupos no Telegram e atribuição de cargos em servidores do Discord.',
-      tag: 'Automação'
+      title: t('landing.features.items.deliveryTitle'),
+      description: t('landing.features.items.deliveryDesc'),
+      tag: t('landing.features.automation')
     },
     {
       icon: <Ticket size={24} className="text-rose-400" />,
-      title: 'Cupons de Desconto',
-      description: 'Crie campanhas flexíveis com cupons de porcentagem, valor fixo ou bônus de dias grátis na assinatura de serviços.',
-      tag: 'Marketing'
+      title: t('landing.features.items.couponsTitle'),
+      description: t('landing.features.items.couponsDesc'),
+      tag: t('landing.features.marketing')
     },
     {
       icon: <BarChart3 size={24} className="text-cyan-400" />,
-      title: 'Dashboard Completo',
-      description: 'Métricas precisas de vendas, controle total de usuários, cupons ativos, relatórios financeiros e gestão de inventário de chaves.',
-      tag: 'Analytics'
+      title: t('landing.features.items.dashboardTitle'),
+      description: t('landing.features.items.dashboardDesc'),
+      tag: t('landing.features.analytics')
     },
     {
       icon: <Rocket size={24} className="text-indigo-400" />,
-      title: 'Pronto para Produção',
-      description: 'Infraestrutura robusta com Docker Compose, Nginx integrado, autenticação JWT segura, bcrypt e rate limiting de série.',
-      tag: 'Infraestrutura'
+      title: t('landing.features.items.productionTitle'),
+      description: t('landing.features.items.productionDesc'),
+      tag: t('landing.features.infra')
     },
   ];
 
@@ -881,11 +883,11 @@ export default function LandingPage() {
       <header className={`lp-header ${scrollY > 20 ? 'scrolled' : ''}`}>
         <div className="lp-header-content">
           <div className="lp-logo-container">
-            <span className="lp-logo-text">VEMATIZE</span>
-            <span className="lp-logo-badge">PREVIEW</span>
+            <img src="/logo.png" alt="Vematize Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
+            <span className="lp-logo-badge">{t('landing.badge')}</span>
           </div>
           <button onClick={handleStart} className="lp-btn-nav">
-            Ver Painel
+            {t('landing.btnNav')}
           </button>
         </div>
       </header>
@@ -894,17 +896,17 @@ export default function LandingPage() {
       <section className="lp-hero">
         <div className="lp-hero-tagline">
           <Sparkles size={14} />
-          <span>Automação Inteligente de Ponta</span>
+          <span>{t('landing.hero.tagline')}</span>
         </div>
         <h1 className="lp-hero-title">
-          Automação Definitiva para Suas Vendas Digitais
+          {t('landing.hero.title')}
         </h1>
         <p className="lp-hero-desc">
-          Gerencie produtos, integre pagamentos PIX em tempo real, configure bots no Telegram e Discord, e controle suas operações em um painel administrativo de alta performance. A solução completa para infoprodutos e assinaturas.
+          {t('landing.hero.desc')}
         </p>
         <div className="lp-hero-actions">
           <button onClick={handleStart} className="lp-btn-primary">
-            Acessar Preview
+            {t('landing.hero.btnPrimary')}
             <ArrowRight size={16} />
           </button>
           <a 
@@ -914,7 +916,7 @@ export default function LandingPage() {
             className="lp-btn-secondary"
           >
             <Github size={16} />
-            Código-Fonte
+            {t('landing.hero.btnSecondary')}
           </a>
         </div>
       </section>
@@ -930,7 +932,7 @@ export default function LandingPage() {
                 <div className="lp-browser-dot" style={{ backgroundColor: '#22c55e' }} />
               </div>
               <div className="lp-browser-address">
-                huneyoliv.github.io/vematize/app/dashboard
+                {t('landing.preview.address')}
               </div>
               <div style={{ width: 42 }} /> {/* Spacing helper */}
             </div>
@@ -941,13 +943,13 @@ export default function LandingPage() {
                     <Zap size={28} />
                   </div>
                   <h3 style={{ fontSize: '18px', fontWeight: 800, marginBottom: '8px', color: '#f8fafc' }}>
-                    Explore o Painel de Controle
+                    {t('landing.preview.title')}
                   </h3>
                   <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '24px', lineHeight: 1.5 }}>
-                    Clique para iniciar a demonstração. Acesso instantâneo sem necessidade de login. Explore produtos, bots e cupons em tempo real.
+                    {t('landing.preview.desc')}
                   </p>
                   <button className="lp-btn-primary" style={{ padding: '12px 24px', fontSize: '14px', margin: '0 auto' }}>
-                    Iniciar Demonstração
+                    {t('landing.preview.btn')}
                   </button>
                 </div>
               </div>
@@ -959,9 +961,9 @@ export default function LandingPage() {
       {/* Bento Grid Features (Interest) */}
       <section className="lp-features-section">
         <div className="lp-section-header">
-          <h2 className="lp-section-title">Recursos Completos da Plataforma</h2>
+          <h2 className="lp-section-title">{t('landing.features.title')}</h2>
           <p className="lp-section-desc">
-            Arquitetada minuciosamente para oferecer velocidade de entrega de chaves, conciliação e estabilidade de infraestrutura.
+            {t('landing.features.desc')}
           </p>
         </div>
         <div className="lp-features-grid">
@@ -992,30 +994,30 @@ export default function LandingPage() {
       <section className="lp-arch-section">
         <div className="lp-arch-grid">
           <div className="lp-arch-left">
-            <span className="lp-arch-tag">Arquitetura Técnica</span>
+            <span className="lp-arch-tag">{t('landing.arch.tag')}</span>
             <h2 className="lp-arch-title">
-              Engenharia Moderna de Ponta a Ponta
+              {t('landing.arch.title')}
             </h2>
             <p className="lp-arch-desc">
-              O Vematize foi projetado sob os padrões mais estritos de qualidade de software. O fluxo de dados é otimizado para responder a milhares de requisições concorrentes sem qualquer perda de performance.
+              {t('landing.arch.desc')}
             </p>
             <div className="lp-arch-bullets">
               <div className="lp-arch-bullet">
                 <ShieldCheck className="lp-arch-bullet-icon" size={20} />
                 <span className="lp-arch-bullet-text">
-                  Segurança total com autenticação baseada em JWT estruturada no backend, armazenamento hash de senhas por bcrypt e rate limiting nativo.
+                  {t('landing.arch.bullet1')}
                 </span>
               </div>
               <div className="lp-arch-bullet">
                 <Code className="lp-arch-bullet-icon" size={20} />
                 <span className="lp-arch-bullet-text">
-                  Design do backend guiado por Clean Architecture com separação lógica estrita entre regras de negócio, infraestrutura e transporte.
+                  {t('landing.arch.bullet2')}
                 </span>
               </div>
               <div className="lp-arch-bullet">
                 <Server className="lp-arch-bullet-icon" size={20} />
                 <span className="lp-arch-bullet-text">
-                  Ambiente local orquestrado via Docker Compose, permitindo subir todo o ecossistema com um único comando.
+                  {t('landing.arch.bullet3')}
                 </span>
               </div>
             </div>
@@ -1027,8 +1029,8 @@ export default function LandingPage() {
                   <CreditCard size={18} />
                 </div>
                 <div>
-                  <div className="lp-arch-node-title">Webhook PIX Recebido</div>
-                  <div className="lp-arch-node-subtitle">Callback instantâneo Mercado Pago / Efí Bank</div>
+                  <div className="lp-arch-node-title">{t('landing.arch.nodes.webhookTitle')}</div>
+                  <div className="lp-arch-node-subtitle">{t('landing.arch.nodes.webhookDesc')}</div>
                 </div>
               </div>
               <div className="lp-arch-line lp-arch-line-active" />
@@ -1037,8 +1039,8 @@ export default function LandingPage() {
                   <Terminal size={18} />
                 </div>
                 <div>
-                  <div className="lp-arch-node-title">Processamento do Engine</div>
-                  <div className="lp-arch-node-subtitle">Validação de transação e resgate de chave no cache</div>
+                  <div className="lp-arch-node-title">{t('landing.arch.nodes.engineTitle')}</div>
+                  <div className="lp-arch-node-subtitle">{t('landing.arch.nodes.engineDesc')}</div>
                 </div>
               </div>
               <div className="lp-arch-line lp-arch-line-active" />
@@ -1047,8 +1049,8 @@ export default function LandingPage() {
                   <Bot size={18} />
                 </div>
                 <div>
-                  <div className="lp-arch-node-title">Notificação & Entrega via Bot</div>
-                  <div className="lp-arch-node-subtitle">Despacho de chaves e cargos via Telegram/Discord</div>
+                  <div className="lp-arch-node-title">{t('landing.arch.nodes.deliveryTitle')}</div>
+                  <div className="lp-arch-node-subtitle">{t('landing.arch.nodes.deliveryDesc')}</div>
                 </div>
               </div>
             </div>
@@ -1060,10 +1062,10 @@ export default function LandingPage() {
       <section className="lp-tech-section">
         <div style={{ textAlign: 'center' }}>
           <h2 className="lp-section-title" style={{ fontSize: '24px', marginBottom: '8px' }}>
-            Pilha Tecnológica de Alta Performance
+            {t('landing.tech.title')}
           </h2>
           <p style={{ color: '#94a3b8', fontSize: '14px' }}>
-            Tecnologias modernas integradas de maneira escalável.
+            {t('landing.tech.desc')}
           </p>
         </div>
         <div className="lp-tech-grid">
@@ -1086,18 +1088,18 @@ export default function LandingPage() {
       {/* Footer & Action CTA (Action) */}
       <footer className="lp-footer">
         <div className="lp-footer-cta">
-          <h2 className="lp-footer-title">Experimente o Vematize Agora</h2>
+          <h2 className="lp-footer-title">{t('landing.footer.title')}</h2>
           <p className="lp-footer-desc">
-            Explore a interface administrativa completa com dados mockados em tempo real e comprove a qualidade de cada detalhe.
+            {t('landing.footer.desc')}
           </p>
           <button onClick={handleStart} className="lp-btn-primary" style={{ margin: '0 auto' }}>
-            Iniciar Preview Gratuito
+            {t('landing.footer.btn')}
             <ArrowRight size={16} />
           </button>
         </div>
         <div className="lp-footer-bottom">
           <div>
-            &copy; {new Date().getFullYear()} Vematize. Desenvolvido sob licença MIT.
+            &copy; {new Date().getFullYear()} Vematize. {t('landing.footer.mit')}
           </div>
           <div className="lp-footer-links">
             <a 
@@ -1106,10 +1108,10 @@ export default function LandingPage() {
               rel="noopener noreferrer" 
               className="lp-footer-link"
             >
-              GitHub
+              {t('landing.footer.github')}
             </a>
             <span style={{ color: 'rgba(255,255,255,0.06)' }}>|</span>
-            <span style={{ color: '#64748b' }}>Projeto de Código Aberto</span>
+            <span style={{ color: '#64748b' }}>{t('landing.footer.openSource')}</span>
           </div>
         </div>
       </footer>

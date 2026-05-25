@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
 import { DatabaseModule } from './infrastructure/database/database.module';
@@ -17,6 +17,7 @@ import {
   SubscriptionRepository,
 } from './infrastructure/database/repositories';
 import { JwtStrategy } from './presentation/guards/jwt.strategy';
+import { RateLimitGuard } from './presentation/guards/rate-limit.guard';
 import { AuthController } from './presentation/controllers/auth.controller';
 import { ProductsController } from './presentation/controllers/products.controller';
 import { UsersController } from './presentation/controllers/users.controller';
@@ -87,7 +88,7 @@ import { SubscriptionSchedulerService } from './application/services/subscriptio
   providers: [
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard,
+      useClass: RateLimitGuard,
     },
     JwtStrategy,
     UserRepository,

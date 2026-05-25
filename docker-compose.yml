@@ -39,6 +39,7 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - DB_SYNC=${DB_SYNC:-false}
       - IMGBB_API_KEY=${IMGBB_API_KEY}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED:-true}
     deploy:
       resources:
         limits:
@@ -131,4 +132,3 @@ services:
 volumes:
   postgres_data:
   redis_data:
-
