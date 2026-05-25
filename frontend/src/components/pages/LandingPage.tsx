@@ -883,9 +883,8 @@ export default function LandingPage() {
       {/* Navigation Header */}
       <header className={`lp-header ${scrollY > 20 ? 'scrolled' : ''}`}>
         <div className="lp-header-content">
-          <div className="lp-logo-container">
-            <img src={logoImg} alt="Vematize Logo" style={{ height: '32px', width: 'auto', objectFit: 'contain' }} />
-            <span className="lp-logo-badge">{t('landing.badge')}</span>
+          <div className="lp-logo-container" style={{ display: 'flex', alignItems: 'center' }}>
+            <img src={logoImg} alt="Vematize Logo" style={{ height: '70px', width: 'auto', objectFit: 'contain' }} />
           </div>
           <button onClick={handleStart} className="lp-btn-nav">
             {t('landing.btnNav')}
