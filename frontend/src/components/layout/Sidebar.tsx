@@ -42,8 +42,12 @@ export default function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0px', margin: '0px 0px 24px 0px', width: '100%', gap: '0px' }}>
-        <img src={logoImg} alt="Vematize" style={{ height: '110px', width: '100%', maxWidth: '236px', objectFit: 'contain' }} />
+      <div className="sidebar-logo" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '0 8px', margin: '0px 0px 24px 0px', width: '100%', gap: '0.75rem' }}>
+        <img src={logoImg} alt="Vematize" style={{ height: '56px', width: 'auto', objectFit: 'contain' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.0' }}>
+          <span style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '-0.03em', color: 'var(--accent)' }}>VEMA</span>
+          <span style={{ fontSize: '20px', fontWeight: '900', letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>TIZE</span>
+        </div>
       </div>
       <nav className="sidebar-nav">
         {navItems.map((item) => (
